@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>STAT 228: Introduction to Data Science</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Anthony Scotina" />
+    <script src="libs/header-attrs-2.3/header-attrs.js"></script>
+    <link rel="stylesheet" href="my-theme.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# STAT 228: Introduction to Data Science
+## Introduction to Data Science with R
+### Anthony Scotina
+
+---
+
+
+
+
+
+
+&lt;!--
+pagedown::chrome_print("~/Dropbox/Teaching/03-Simmons Courses/MATH228-Introduction to Data Science/Lecture Slides/01-Introduction/01-Introduction.html")
+--&gt;
+
+class: center, middle
+
+# Introduction to Data Science
+
+---
+
+# Data Science, Version 1.0
+
+.center[
+&lt;img src="ds_v1.png" width="75%" /&gt;
+]
+
+---
+
+# Data Science, Version 2.0
+
+.center[
+&lt;img src="ds_v2.png" width="75%" /&gt;
+]
+
+---
+
+# Data Science, Version 3.0
+
+.center[
+&lt;img src="ds_v3.png" width="75%" /&gt;
+]
+
+---
+
+# Data Science = Science?
+
+.center[
+&lt;img src="ds_twitter.png" width="75%" /&gt;
+]
+
+---
+
+# Data Science, Version 228?
+
+.center[
+&lt;img src="01-Introduction_files/figure-html/unnamed-chunk-6-1.png" width="50%" /&gt;
+]
+
+&gt; **Data Science**: The science of extracting meaningful information from data
+
+---
+
+class: center, middle
+
+# Case Study: Popular baby names since 1880
+
+---
+
+# Collect Data
+
+.center[
+&lt;img src="ssa_babynames.png" width="2696" /&gt;
+]
+
+---
+
+# "Babynames" Dataset
+
+```r
+data(babynames)
+babynames
+```
+
+```
+# A tibble: 1,924,665 x 5
+    year sex   name          n   prop
+   &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;     &lt;int&gt;  &lt;dbl&gt;
+ 1  1880 F     Mary       7065 0.0724
+ 2  1880 F     Anna       2604 0.0267
+ 3  1880 F     Emma       2003 0.0205
+ 4  1880 F     Elizabeth  1939 0.0199
+ 5  1880 F     Minnie     1746 0.0179
+ 6  1880 F     Margaret   1578 0.0162
+ 7  1880 F     Ida        1472 0.0151
+ 8  1880 F     Alice      1414 0.0145
+ 9  1880 F     Bertha     1320 0.0135
+10  1880 F     Sarah      1288 0.0132
+# … with 1,924,655 more rows
+```
+
+---
+
+# Visualization
+
+**How many male babies have been named "Anthony" since 1880?**
+
+
+```r
+babynames %&gt;%
+  filter(name == "Anthony" &amp; sex == "M") %&gt;%
+  ggplot(aes(x = year, y = n)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Year", y = "Name Count by Year")
+```
+
+&lt;img src="01-Introduction_files/figure-html/unnamed-chunk-9-1.png" width="40%" /&gt;
+
+---
+
+# Interpretation
+
+**What does the visualization tell us?**
+
+- It tells us how many *male* babies were named *Anthony* in a given year
+
+- The name *Anthony* has (mostly) grown in **number** since 1880. 
+
+--
+
+But what has also grown since 1880?
+
+- **More babies!**
+
+--
+
+&gt; What would be a more useful analysis than simply looking at the NUMBER of babies born with a given name each year?
+
+--
+
+- Comparing multiple babies in the same visualization?
+
+- Some measure of rank within year?
+
+---
+
+class: center, middle
+
+# Course Introductions
+
+---
+
+# Who am I?
+
+.pull-left[
+- Asst. Prof of Statistics
+
+- Website: [https://scotinastats.rbind.io/](https://scotinastats.rbind.io/)
+
+- Ph.D. (Biostatistics), Brown U
+    - M.S. (Statistics), UMass
+    
+    - B.A. (Math, Psychology), Holy Cross
+    
+- Hobbies include **R**. That's it. 
+]
+
+.pull-right[
+&lt;img src="me_grad.jpg" width="4032" /&gt;
+]
+
+---
+
+# Where are you?
+
+**Introduction to Data Science!**
+
+**Some information**
+
+- Grading:
+    - Assignments and self-assessments [**30%**]: Individual assignments completed in *R Markdown*. You will critically self-assess your own work using the solution key (see syllabus for details). 
+    
+    - Mini-projects [**70%**; 45% for the first three, 25% for the final]: Four blogpost-style projects will be assigned throughout the semester. 
+
+---
+
+# Where are you?
+
+**Introduction to Data Science!**
+
+**Some information**
+
+- Student Hours (~in my office~ on Zoom):
+    - Thursday, 2pm-3pm; Friday 11am-1pm (all times EST)
+    
+    - or by appointment (*please Slack message/email me if you'd like to meet*!!!)
+    
+---
+
+# Textbook
+    
+.pull-left[
+&lt;img src="mdsr.jpg" width="75%" /&gt;
+]
+   
+.pull-right[
+- On [Amazon](https://www.amazon.com/Modern-Data-Science-Download-Statistical/dp/1498724485)
+
+- Also **openly** available [online](https://beanumber.github.io/mdsr2e/)
+    - This is a *working draft*, and the section numbers aren't all the same as in the first edition. 
+    
+- **Read the assigned sections** *before* each class! 
+
+Other (open-source) books:
+
+- [R for Data Science](https://r4ds.had.co.nz/)
+
+- [Statistical Inference via Data Science: A Modern Dive](https://moderndive.com/)
+]
+
+---
+
+# What this course is:
+
+.center[
+&lt;img src="ds_pipeline.png" width="491" /&gt;
+]
+
+--
+
+.pull-left[
+- Data visualization
+
+- Data wrangling/cleaning
+
+- Writing functions
+
+- Version control
+
+- Interactive graphics
+
+- Spatial/text data
+
+- Modeling
+]
+
+.pull-right[
+&lt;img src="ggplot2_hex.png" width="35%" /&gt;&lt;img src="dplyr_hex.png" width="35%" /&gt;
+&lt;img src="tidyr_hex.png" width="35%" /&gt;&lt;img src="shiny_hex.png" width="35%" /&gt;
+
+]
+
+
+---
+
+# Overarching Themes
+
+.pull-left[
+&lt;img src="rmarkdown_hex.png" width="35%" /&gt;&lt;img src="r_logo.png" width="35%" /&gt;
+&lt;img src="pipe_hex.jpg" width="35%" /&gt;&lt;img src="tidyverse_hex.png" width="35%" /&gt;
+]
+
+.pull-right[
+- Reproducible workflows
+
+- R + R Markdown + R Studio
+
+- `tidyverse`
+
+- Communication
+
+- R + R Markdown + R Studio
+]
+
+---
+    
+# Computing
+
+.pull-left[
+We will be doing **a ton** of computing in this class!
+- Please bring a laptop to each class. 
+
+Install **BOTH** R and R Studio using the links below:
+
+**Installing R**
+
+- [r-project.org (click)](https://www.r-project.org/)
+
+**Installing R Studio** (Desktop version)
+
+- [https://rstudio.com/products/rstudio/](https://rstudio.com/products/rstudio/)
+]
+
+.pull-right[
+&lt;img src="r_logo.png" width="50%" /&gt;
+
+&lt;img src="r_meme.png" width="1792" /&gt;
+]
+
+---
+
+# Homework (before Thursday)
+
+- Read the **syllabus**, and let me know if you have any questions or concerns. 
+
+- Join our **Slack** workspace if you haven't yet. 
+
+- Install R and R Studio, verify that **R Studio** opens. 
+
+---
+
+class: center, middle
+
+# Introduction to R
+
+---
+
+# Using R Studio
+
+1. Open **R Studio** (never open **R**). 
+
+2. In the menu bar at the top of your screen: **File** -- **New File** -- **New Script**
+
+.center[
+&lt;img src="r-window.png" width="75%" /&gt;
+]
+
+---
+
+# The R Studio Window
+
+.center[
+&lt;img src="r-window.png" width="50%" /&gt;
+]
+
+**The Four Panels**:
+
+1. **Console** (bottom-left): This is where you can perform simple calculations or run/execute commands. 
+    - Either type code directly into the console, or run from a the *editor*...
+2. **Editor** (top-left): This is where you can save and edit *R code* and *text* into a **script** or **R Markdown files**.
+    - Save all of your code in a script (.R) or R Markdown (.Rmd) files!!!
+3. **Files, Packages, Help, Plots** (bottom-right): See your files, packages, help screens, and plots (more in a few...).
+4. **Environment** (top-right): Your current workspace (more in a few...).
+
+---
+
+# Pep Talk
+
+Learning R can be difficult at first. 
+
+Hadley Wickham, the chief data scientist at R Studio and the author of some **amazing** R packages (many of which we'll use in this course), made this observation:
+
+&gt; It’s easy when you start out programming to get really frustrated and think, “Oh it’s me, I’m really stupid,” or, “I’m not made out to program.” But, that is absolutely not the case. Everyone gets frustrated. I still get frustrated occasionally when writing R code. It’s just a natural part of programming. So, it happens to everyone and gets less and less over time. Don’t blame yourself. Just take a break, do something fun, and then come back and try again later.
+
+If you're finding yourself stuck on a particular exercise and not understanding, take a break, talk to classmates, e-mail me, stop by my office, etc.
+
+I *promise* you can do this!
+
+---
+
+# Basic Programming Concepts
+
+**Vectors**: a series of values, created using the `c()` command. 
+- Type
+    
+    ```r
+    c(8, 6, 7, 5, 3, 0, 9)
+    ```
+
+    into the **console** (bottom-left) and press "Enter".
+- Type 
+    
+    ```r
+    c(8, 6, 7, 5, 3, 0, 9)
+    ```
+
+    into your **script** (top-left) and click "Run" *while your cursor is on the same line*.
+    
+Think of `c()` as standing for "*concatenate*" or "*combine*".
+    
+---
+
+# Basic Programming Concepts
+
+- Type 
+    
+    ```r
+    c("Never", "gonna", "give", "you", "up,", "never", "gonna", "let", "you", "down")
+    ```
+
+    into your **script** and click "Run".
+- Type 
+    
+    ```r
+    c(Never, gonna, give, you, up, never, gonna, let, you, down)
+    ```
+
+    into your **script** and click "Run". What happened?
+    
+--
+
+Make sure any **character** variable (e.g., non-numerical) is surrounded by *quotation marks*! 
+
+--
+
+**Pro-tip**: Press [command] + [return] (Mac) while your cursor is on the same line as your code, and the line will run!
+
+---
+
+# Basic Programming Concepts
+
+**Assignment**: Let's *assign* the vector `c(8, 6, 7, 5, 3, 0, 9)` to a variable, so we don't have to keep typing it out. 
+- Type 
+    
+    ```r
+    jenny = c(8, 6, 7, 5, 3, 0, 9)
+    ```
+
+    and click "Run".
+    
+    - **Note**: The symbol `&lt;-` also works in place of `=`, so you can use *either* for assignment. 
+
+--
+
+- You might think nothing happened after that last example. But look to the **Environment** panel (top-right). 
+    - Now, type 
+        
+        ```r
+        mean(jenny)
+        ```
+    
+        and click "Run".
+
+---
+
+# Arithmetic
+
+At its core, R Studio can act as a simple calculator:
+- `+` : addition
+- `-` : subtraction
+- `*` (shift + 8) : multiplication
+- `/` : division
+- `^` (shift + 6) : exponent
+
+--
+
+Run the following equations:
+- `2+2`
+- `753-342`
+- `359*315`
+- `118/21`
+- `5^3`
+- `8/2*(2+2)`
+- `8/(2*(2+2))`
+
+---
+
+# R Packages
+
+We will be using **R packages** extensively.
+- R is *open-source*, which means that members in the community can provide additional functions, data, or documentation in a *package*. 
+- Packages are *free* and can be easily downloaded. 
+
+--
+
+**Downloading packages in R Studio**
+
+&gt; **Packages** tab (bottom-right) -- **Install** -- Type package name and press *Install*
+
+- **Right now**: Install the `tidyverse` package. 
+
+- **For homework**: Install the following packages (separate by a comma when typing the names):
+    - `mosaic`, `skimr`: packages for data analysis
+    - `patchwork`, `ggthemes`: packages for data visualization
+    - `mdsr`: package that accompanies one of the course textbooks
+    - `babynames`, `dslabs`, `nycflights13`: packages with useful datasets
+    - `devtools`: helps with installing some independent packages
+    
+---
+
+# Loading R Packages
+
+We load R packages with the `library()` function. 
+- Note that, while you only **install** packages once, you must **load** them *each time you open a new R session*. 
+
+Run the following:
+
+```r
+library(tidyverse)
+```
+
+Now this suite of packages (and their **dependencies**) is loaded!
+    
+---
+
+# Functions
+
+Once we define **objects**, **variables**, and/or **datasets**, much of data analysis involves applying a series of **functions** to the data. 
+
+We have already used several functions!
+- `c()`
+- `mean()`
+- `install.packages()` 
+
+--
+
+R functions typically require one or more *arguments*. 
+- Some arguments are *pre-set* to **default values**. 
+
+Run the following:
+
+```r
+?mean
+?sum
+?sqrt
+```
+
+---
+
+# Data Frames
+
+**Data frames**:  analogous to rectangular spreadsheets you would see in Excel or Google Spreadsheets. 
+
+- Rows of a data frame correspond to *observations*, and columns correspond to *variables*. 
+
+--
+
+The `mpg` data frame (contained in the `ggplot2` package, which is part of `tidyverse`), contains fuel economy data for 38 popular car models from [http://fueleconomy.gov](http://fueleconomy.gov). 
+
+Run the following two lines:
+
+```r
+library(tidyverse) # Run only if you haven't loaded this yet
+mpg
+```
+
+
+```r
+View(mpg)
+```
+
+---
+
+# `mpg` Data Frame
+
+A few notes on this dataset...
+
+- A "tibble" is a type of data frame in R. The `mpg` data frame has:
+    - 234 **rows**
+    - 11 **columns**
+    
+- The 11 columns correspond to 11 different **variables**. Some of which are: *manufacturer*, *model*, *cty*, *hwy*, etc.
+
+- In the console, we are shown the first 10 rows by default, since the rest can't fit on the screen. 
+
+---
+
+# Exploring Data
+
+The `$` operator allows us to explore a single variable within a data frame. For example, run the following in your console:
+
+```r
+mpg
+```
+
+
+```r
+mpg$manufacturer
+```
+
+
+```r
+mpg$cty
+```
+
+- The `$` extracts only the `manufacturer` or `cty` variable from the `mpg` data frame and returns it as a **vector**. 
+
+---
+
+# Exploring Data
+
+We can use the `$` operator to calculate descriptive statistics for variables within a dataset:
+
+
+```r
+mean(mpg$cty)
+```
+
+```
+[1] 16.85897
+```
+
+**What do you think `cty` means?**
+
+--
+
+You can get help in R by entering a `?` before the name of a function or data frame (*if it comes in an R package*), and a page will appear in the bottom-right panel. 
+
+- Try the following:
+
+```r
+?mpg
+```
+
+I use the help files **all the time**, and you should too, especially if you're stuck with a specific function!
+
+---
+
+# Types of Variables
+
+The object `mpg$city` is not one object, but *several*, contained within a **vector**. 
+
+The `class()` function gives the `class` of an object (e.g., *variable types*). 
+
+```r
+class(mpg$cty)
+```
+
+```
+## [1] "integer"
+```
+
+
+```r
+class(mpg$class)
+```
+
+```
+## [1] "character"
+```
+
+---
+
+# Coercion
+
+Elements of a vector must all be of the *same type*. If we try to combine *numbers* and *characters*, strange things can happen:
+
+```r
+giant_glass = c(1, 800, 54, "giant")
+giant_glass
+```
+
+```
+## [1] "1"     "800"   "54"    "giant"
+```
+
+```r
+class(giant_glass)
+```
+
+```
+## [1] "character"
+```
+
+--
+
+R **coerced** the data into *characters*! 
+- It thinks that, because you put a *character string* in the vector, you mean for the numbers in the vector to be characters as well. 
+
+--
+
+Why doesn't this give a numeric answer?
+
+
+```r
+mean(giant_glass)
+```
+
+---
+
+# Logical Vectors
+
+Another important type of vector is a **logical** vector. These must be either `TRUE` or `FALSE`. 
+
+Is 3 equal to 2?!
+
+```r
+test = (3 == 2)
+test
+```
+
+```
+## [1] FALSE
+```
+
+Note that while `=` (and `&lt;-`) are used for **assignment**, a double `==` is used to *test for equality*. 
+
+--
+
+**Example**
+
+Before you run this, try to guess what the result will be!
+
+```r
+test_vec = c(3 == 2, 3 == 3, 3 &lt; 4, 3 &lt; 2)
+test_vec
+```
+
+---
+
+# Other Functions
+
+`seq()` generates a *sequence* of numbers 
+
+
+```r
+# Vector:
+x = c(1,2,3)
+
+# We can also define a vector that is a sequence of numbers
+y = seq(1, 10, by = 2)
+y
+```
+
+```
+## [1] 1 3 5 7 9
+```
+
+```r
+# Combine x and y into one vector
+c(x, y)
+```
+
+```
+## [1] 1 2 3 1 3 5 7 9
+```
+
+When `by = 1`, we can use a shortcut...
+
+
+```r
+1:10
+```
+
+```
+##  [1]  1  2  3  4  5  6  7  8  9 10
+```
+
+---
+
+# Indexing
+
+In order to retrieve a *specific element* of a vector or data frame, we can use square brackets `[ ]`:
+
+```r
+# Retrieve the 5th element of mpg$hwy
+mpg$hwy[5]
+```
+
+```
+## [1] 26
+```
+
+```r
+# Retrieve the 5th THROUGH 10th elements of mpg$hwy
+mpg$hwy[5:10]
+```
+
+```
+## [1] 26 26 27 26 25 28
+```
+
+--
+
+We can get pretty creative with indexing...
+
+
+```r
+# Retrieve only mpg$hwy ABOVE 35
+mpg$hwy[mpg$hwy &gt; 35]
+```
+
+```
+## [1] 36 36 37 44 44 41
+```
+
+--
+
+**Note** (to Python users): In R indexing begins at `1`, *not* `0`. 
+
+---
+
+# Indexing
+
+Of course, the previous exercise is pretty meaningless since we don't know *which cars* have good fuel economy. 
+- We can index a data frame by specifying both the *row number(s)* and *column number(s)*. 
+
+
+```r
+# Access the 5th ROW across ALL columns
+mpg[5, ]
+```
+
+
+```r
+# Access the 5th ROW of the columns named "manufacturer" and "hwy"
+mpg[5, c("manufacturer", "hwy")] 
+```
+
+
+```r
+# Check which cars get more than 35 highway miles per gallon
+mpg[mpg$hwy &gt; 35, ]
+```
+
+---
+
+class: center, middle
+
+# R Markdown
+
+&lt;img src="rmarkdown_hex.png" width="50%" /&gt;
+
+---
+
+# R Markdown
+
+**R Markdown** provides a way for R (and python/SQL) users to produce a single file containing code, output, and notes. 
+
+.center[
+&lt;img src="rmarkdown.png" width="80%" /&gt;
+]
+
+Time for a **demo**! 
+
+Click **File** -- **New File** -- **R Notebook**
+
+---
+
+# R Markdown Activity
+
+With a neighbor, work on the following:
+
+- Create a new folder called `MATH228_Notes`. 
+
+- Save the R Markdown file you just opened to this folder as `01-Introduction_Notes`. You can either use **Save As...** from the File menu, or click on the blue disc icon in the top-left panel. 
+
+- What do you think are the differences between the *white* blocks of text and the *gray* blocks of text?
+
+- What happens when you click the **Knit** icon at the top of the R Markdown file?
+
+- Create a "code chunk" similar to the one with `plot(cars)` on lines 10-12, but type `summary(cars)`. 
+    - **Pro-tip**: Press [command]+[option]+[I] (Mac), or [Ctrl]+[Alt]+[I] (Windows) to create a blank code chunk!
+    
+---
+
+# Chunk Options
+
+- `echo = FALSE`: Don't *show* code
+
+- `eval = FALSE`: Don't *evaluate* the code
+
+- `include = FALSE`: Don't show the code or the results
+
+- `message = FALSE`: Don't show the messages
+    - This is usually relevant when you load a package but want to suppress the different "welcome" messages they might give. 
+    
+- `warning = FALSE`: Don't show warning messages
+
+- `out.width = "50%"` Makes a figure half the size (you can change the percentage to fit your needs). 
+
+In general, show your code and your results, but not your messages. 
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"countIncrementalSlides": false,
+"highlightLines": true
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
