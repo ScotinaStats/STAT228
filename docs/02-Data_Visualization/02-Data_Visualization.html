@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>STAT 228: Introduction to Data Science</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Anthony Scotina" />
+    <script src="libs/header-attrs-2.3/header-attrs.js"></script>
+    <link rel="stylesheet" href="my-theme.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# STAT 228: Introduction to Data Science
+## Data Visualization with ggplot2
+### Anthony Scotina
+
+---
+
+
+
+
+
+
+&lt;!--
+pagedown::chrome_print("~/Dropbox/Teaching/03-Simmons Courses/STAT228-Introduction to Data Science/Lecture Slides/02-Data_Visualization/02-Data_Visualization.html")
+--&gt;
+
+class: center, middle, frame
+
+# Taxonomy of Data Graphics
+
+---
+
+# The Data Science  Pipeline
+
+From *R for Data Science*:
+
+&lt;img src="ds_pipeline.png" width="75%" /&gt;
+
+--
+
+**What is a Data Visualization (aka "Dataviz")?**
+- A *visual representation of data*
+
+--
+
+**Two main types of dataviz**
+
+1. *Exploratory*
+
+2. *Explanatory*
+
+---
+
+# Exploratory
+
+
+
+
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-5-1.png" width="50%" /&gt;
+
+- Understand the data
+- *Explore* hypotheses/results
+
+---
+
+# Explanatory
+
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-6-1.png" width="50%" /&gt;
+
+- **Communicate** results
+- Tell a story!
+
+---
+
+# Babynames Example
+
+Should I focus on the *number* of babies born with the name **Anthony**?
+
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-7-1.png" width="60%" /&gt;
+
+---
+
+# Babynames Example
+
+Or, should I focus on the **rank** of the name *Anthony* by year?
+
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-8-1.png" width="60%" /&gt;
+
+---
+
+# Composing Data Graphics
+
+*Yao (2013)*: 
+- Creating data graphics is like **cooking**. Anyone can do it, but *mastery of their tools, knowledge of their ingredients, insight, and creativity* separates the "great chefs" from the novices. 
+
+--
+
+How data graphics convey information can be understood in terms of *four basic elements*:
+
+1. **visual cues**
+
+2. **coordinate system**
+
+3. **scale** 
+
+4. **context**
+
+---
+
+# Visual Cues
+
+.pull-left[
+**Nine distinct visual cues**:
+
+- **Position**
+- **Length**
+- **Angle**
+- **Direction**
+- **Shape**
+- **Area**
+- **Volume**
+- **Shade**
+- **Color**
+
+Our ability to perceive differences in magnitude descends **in this order**. 
+- In other words, we can judge differences in position *very well*, but not so much angles, shade, or color. 
+]
+
+--
+
+.pull-right[
+&lt;img src="yao_visual_cues.png" width="311" /&gt;
+
+- *Yao (2013)*
+]
+
+---
+
+# Coordinate System
+
+**How are the points organized?**
+
+Three common coordinate systems:
+
+- **Cartesian**: The familiar (*x*, *y*) coordinate system that you usually see. 
+
+- **Polar**: Each point is identified by its *distance from the origin* and its **angle**. 
+
+- **Geographic**: Locations are based on geographic coordinates on the surface of Earth (more on this later!). 
+
+--
+
+The choice of coordinate system is **crucial**!
+
+- If you choose the *polar coordinate system* when you should've chosen *Cartesian*, you might not enjoy the result...
+
+---
+
+# Scale
+
+**Three choices**
+
+- **Numerical**
+    - Examples: *continuous* (e.g., temperature), *discrete* (e.g., STAT 228 enrollment)
+    - Values could be *evenly spaced*, on a *logarithmic scale*, or represent *percentages*
+
+- **Categorical**
+    - Examples: nominal or *ordinal* categorical variables
+
+- **Time**
+    - Months? Days? Hours? Season??
+    
+---
+
+# Context
+
+Don't distract, but provide enough useful information in a visualization to provide *context* to the viewer. 
+- Can be done with axis labels, titles, annotations, etc. 
+
+--
+
+**Which visual is more useful?**
+
+.pull-left[
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-10-1.png" width="85%" /&gt;
+]
+
+.pull-right[
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-11-1.png" width="85%" /&gt;
+]
+
+---
+
+# Small Multiples (Facets)
+
+A single graphic can be composed of smaller plot, with *one variable* changing in each plot. 
+
+.center[
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-12-1.png" width="50%" /&gt;
+]
+
+---
+
+# Layers
+
+Sometimes it might be preferable to draw new **layers** on top of an *existing graphic*. 
+
+.center[
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-13-1.png" width="50%" /&gt;
+]
+
+- **Be careful!** There is a *limit* to how many layers we can effectively parse. 
+
+---
+
+# Animation
+
+An **animation** can sometimes effectively convey the changes in an additional variable, especially if that variable is **time**. 
+- However, it can't be used on the *printed page*. 
+
+--
+
+.center[
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-14-1.gif" width="50%" /&gt;
+
+]
+
+---
+
+# Animation
+
+Let's look at one more...
+
+.center[
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-15-1.gif" width="50%" /&gt;
+]
+
+---
+
+# Dissecting Data Visualizations
+
+.center[
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-16-1.png" width="40%" /&gt;
+]
+
+- **Visual cues**: position, length
+- **Coordinate system**: Cartesian (though the *y*-coordinate is categorical here)
+- **Scale**: categorical *y* (arranged in order of `Count`); *x* measured on **linear** scale (i.e., values are *evenly spaced*)
+- **Context**: provided by axis labels and title
+
+---
+
+# Dissecting Data Visualizations
+
+.center[
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-17-1.png" width="60%" /&gt;
+]
+
+**Visual cues?** **Coordinate system?** **Scale?** **Context?**
+
+---
+
+# Dissecting Data Visualizations
+
+.pull-left[
+![](02-Data_Visualization_files/figure-html/unnamed-chunk-18-1.png)&lt;!-- --&gt;
+]
+
+.pull-right[
+- **Visual cues**: color (distinguishing `Breed`), angle (to quantify differences in bite proportion within `Borough`)
+
+- **Coordinate system**: polar coordinate system
+
+It would probably be easier to just view the percents in a **table**, or in a **better plot**. 
+
+]
+
+---
+
+# A Better Plot than a Pie Chart
+
+.center[
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-19-1.png" width="60%" /&gt;
+
+**Lollipop Chart!**
+]
+
+---
+
+# Pie charts are bad!
+
+*Do not. Use. Pie charts.* 
+
+.center[
+&lt;img src="batman.jpg" width="60%" /&gt;
+
+**The Batman (Ben Affleck version) of Dataviz**
+]
+
+---
+
+class: center, middle, frame
+
+# The Grammar of Graphics
+
+.pull-left[
+&lt;img src="ggplot2_hex.png" width="85%" /&gt;
+]
+
+.pull-right[
+&lt;img src="ggplot2_meme.jpg" width="346" /&gt;
+]
+
+---
+
+# Needed Packages
+
+
+```r
+library(mdsr) 
+library(tidyverse) # includes ggplot2
+library(nycflights13)
+library(babynames)
+library(ggridges)
+library(patchwork)
+```
+
+---
+
+# Dataviz with ggplot2
+
+.center[
+&lt;img src="ggplot2_plot1.png" width="75%" /&gt;
+]
+
+--
+
+`ggplot2` is just *one engine* in R used to create graphics. 
+
+- Other examples: **base** (e.g., `plot(x, y)`), **lattice** (used in the `mosaic` package)
+
+---
+
+# The Grammar of Graphics
+
+.pull-left[
+&lt;img src="grammar_paper.png" width="1419" /&gt;
+]
+
+.pull-right[
+&lt;img src="hadley.jpg" width="683" /&gt;
+]
+
+--
+
+A theoretical framework for data visualization
+
+- *Idea*: You construct plots in the same way that you construct sentences, by combining many different elements. 
+
+---
+
+# What is a statistical graphic?
+
+The **grammar of graphics** defines a "statistical graphic" as the following:
+
+- **statistical graphic**: a mapping of `data` variables to `aes()`thetic attributes of `geom_`etric objects
+
+--
+
+Let's look back at the statistical graphic on area vs. population in US cities. 
+
+.center[
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; data &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; aes &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; geom &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Area &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; x &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; point, smooth &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Population &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; y &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; point, smooth &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; State &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; color &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; point &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; PopDensity &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; size &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; point &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+]
+
+---
+
+# Components of the Grammar
+
+We can break a graphic into three essential components:
+
+1. `data`: the dataset composed of variables that we *map*
+2. `aes`: aesthetic attributes of the geometric object. 
+    - x/y position, color, shape, and size
+3. `geom`: the shape or visual representation of our data. 
+    - `geom_` ... point, line, boxplot, histogram, bar, etc.
+
+--
+
+.center[
+&lt;img src="grammar-of-graphics.png" width="75%" /&gt;
+]
+---
+
+# The `CIACountries` Data Frame
+
+
+```r
+head(CIACountries, 5) # Show the first 5 rows of CIACountries
+```
+
+```
+##          country      pop    area oil_prod   gdp educ   roadways net_users
+## 1    Afghanistan 32564342  652230        0  1900   NA 0.06462444       &gt;5%
+## 2        Albania  3029278   28748    20510 11900  3.3 0.62613051      &gt;35%
+## 3        Algeria 39542166 2381741  1420000 14500  4.3 0.04771929      &gt;15%
+## 4 American Samoa    54343     199        0 13000   NA 1.21105528      &lt;NA&gt;
+## 5        Andorra    85580     468       NA 37200   NA 0.68376068      &gt;60%
+```
+
+
+```r
+?CIACountries # Help page 
+View(CIACountries) # View the raw data in a separate window
+```
+
+---
+
+# Basic Template
+
+How can we make a plot of `educ` (education spending, % of GDP) versus `gdp` (GDP per capita, &amp;#36;/person)?
+
+--
+
+
+```r
+ggplot(data = CIACountries, mapping = aes(x = educ, y = gdp))
+```
+
+- What happened? What do you think we're missing?
+
+---
+
+# Basic Template
+
+
+```r
+ggplot(data = CIACountries, mapping = aes(x = educ, y = gdp)) + 
+* geom_point(size = 3)
+```
+
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-32-1.png" width="50%" /&gt;
+
+---
+
+# Basic Template
+
+
+```r
+ggplot(data = CIACountries, mapping = aes(x = educ, y = gdp)) + 
+  geom_point(size = 3)
+```
+
+Graphics in `ggplot2` are built *incrementally* by different elements:
+
+
+--
+
+- `ggplot()` creates the plot, and any arguments within the function are applied globally throughout the plot.  
+    
+--
+
+- The two **aesthetics** (`aes()`) map the *horizontal coordinate* (*x*) to `educ`, and the *vertical coordinate* (*y*) to `gdp`. 
+    - Aesthetics *always* map *variables* to *visual cues*. 
+
+--
+
+- `geom_point()` plots *points*, where are (currently) the only element in the plot. 
+    - `size = 3` is **not an aesthetic**; it only controls the *size* of the points. 
+    - The *only thing* distinguishing one point from another is *location*. 
+
+---
+
+# Adding Aesthetics
+
+We can define *additional aesthetics*:
+
+
+```r
+ggplot(data = CIACountries, mapping = aes(x = educ, y = gdp)) + 
+* geom_point(aes(color = net_users), size = 3)
+```
+
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-34-1.png" width="45%" /&gt;
+
+---
+
+# Adding Aesthetics
+
+
+```r
+ggplot(data = CIACountries, mapping = aes(x = educ, y = gdp)) + 
+  geom_point(aes(color = net_users), size = 3) 
+```
+
+Here we mapped the **color** of each point to the categorical `net_users` variable (fraction of Internet users). 
+
+- Because `color = ` is inside of `aes()`, this *must be mapped to a variable*. 
+
+Run the following instead:
+
+
+```r
+ggplot(data = CIACountries, mapping = aes(x = educ, y = gdp)) + 
+  geom_point(color = "hotpink", size = 3) 
+```
+
+---
+
+# Adding Aesthetics
+
+
+```r
+ggplot(data = CIACountries, mapping = aes(x = educ, y = gdp)) + 
+* geom_point(aes(color = net_users, size = roadways))
+```
+
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-37-1.png" width="50%" /&gt;
+
+---
+
+# Facets
+
+Sometimes, having many **aesthetics** specified in a single plot can result in a visualization that is difficult to read. 
+
+- **Facets** are multiple side-by-side visualizations that each show a different level of a categorical variable. 
+
+--
+
+Run the following:
+
+
+```r
+ggplot(data = CIACountries, mapping = aes(x = educ, y = gdp)) + 
+  geom_point(aes(size = roadways)) + 
+  facet_wrap( ~ net_users)
+```
+
+--
+
+The `facet_wrap()` function creates a **facet** for each level of a *single categorical variable*, where the name of the categorical variable (`net_users`) follows the "tilde" (`~`). 
+
+- You can also run `facet_wrap( ~ net_users, nrow = 1)` to force each facet to the *same row*. 
+
+---
+
+# Labels
+
+Remember, in order to *tell a story* with your data visualization, appropriate labels are crucial!
+
+- The `labs()` layer can add custom labels to each mapping in your plot:
+
+
+```r
+ggplot(data = CIACountries, mapping = aes(x = educ, y = gdp)) + 
+  geom_point(aes(color = net_users, size = roadways)) + 
+  labs(x = "Education spending (% of GDP)", y = "GDP per capita", 
+       color = "% Internet users", size = "Roadways per unit area")
+```
+
+--
+
+Each argument in `labs()` changes the **label of the aesthetic** as it appears in the visualization. 
+
+- `x = ` and `y = ` change *axis labels*, while `color = ` and `size = ` change *legend labels*. 
+
+---
+
+# Labels
+
+
+```r
+ggplot(data = CIACountries, mapping = aes(x = educ, y = gdp)) + 
+  geom_point(aes(color = net_users, size = roadways)) + 
+  labs(x = "Education spending (% of GDP)", y = "GDP per capita", 
+       color = "% Internet users", size = "Roadways per unit area")
+```
+
+&lt;img src="02-Data_Visualization_files/figure-html/unnamed-chunk-40-1.png" width="45%" /&gt;
+
+---
+
+# Practice
+
+The `mpg` data frame in the `ggplot2` package contains fuel economy data from 1999 and 2008 for 38 popular car models. 
+
+
+```r
+View(mpg)
+```
+
+Using the `mpg` data, create a visualization that depicts the relationship between *city miles per gallon* (`cty`) and *highway miles per gallon* (`hwy`). 
+
+- Add a **color** aesthetic for `class` (the "type" of car). 
+
+
+
+
+
+
+    
+    
+    
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"countIncrementalSlides": false,
+"highlightLines": true
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
