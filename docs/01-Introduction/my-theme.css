@@ -175,3 +175,21 @@ table.dataTable.hover tbody tr:hover, table.dataTable.display tbody tr:hover {
     left: 0 !important;
   }
 }
+
+.frame h1 {
+  color: #3F8F95;
+  padding-bottom: 1.0em !important;
+  border-bottom: 3px solid #bed3ec;
+}
+
+.inverse .frame h1 {
+  color: #bed3ec;
+  padding-bottom: 1.0em !important;
+  border-bottom: 3px solid #bed3ec;
+}
+
+.display {
+  font-weight: 700;
+  color: #3F8F95;
+  border-bottom: 3px solid #bed3ec;
+}

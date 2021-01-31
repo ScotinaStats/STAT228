@@ -4,7 +4,7 @@
     <title>STAT 228: Introduction to Data Science</title>
     <meta charset="utf-8" />
     <meta name="author" content="Anthony Scotina" />
-    <script src="libs/header-attrs-2.3/header-attrs.js"></script>
+    <script src="libs/header-attrs-2.6/header-attrs.js"></script>
     <link rel="stylesheet" href="my-theme.css" type="text/css" />
   </head>
   <body>
@@ -26,7 +26,7 @@ class: center, middle, inverse, title-slide
 pagedown::chrome_print("~/Dropbox/Teaching/03-Simmons Courses/MATH228-Introduction to Data Science/Lecture Slides/01-Introduction/01-Introduction.html")
 --&gt;
 
-class: center, middle
+class: center, middle, frame
 
 # Introduction to Data Science
 
@@ -74,7 +74,7 @@ class: center, middle
 
 ---
 
-class: center, middle
+class: center, middle, frame
 
 # Case Study: Popular baby names since 1880
 
@@ -158,7 +158,7 @@ But what has also grown since 1880?
 
 ---
 
-class: center, middle
+class: center, middle, frame
 
 # Course Introductions
 
@@ -204,7 +204,7 @@ class: center, middle
 
 **Some information**
 
-- Student Hours (~in my office~ on Zoom):
+- Student Hours (~~in my office~~ on Zoom):
     - Thursday, 2pm-3pm; Friday 11am-1pm (all times EST)
     
     - or by appointment (*please Slack message/email me if you'd like to meet*!!!)
@@ -292,7 +292,6 @@ Other (open-source) books:
 
 .pull-left[
 We will be doing **a ton** of computing in this class!
-- Please bring a laptop to each class. 
 
 Install **BOTH** R and R Studio using the links below:
 
@@ -313,17 +312,20 @@ Install **BOTH** R and R Studio using the links below:
 
 ---
 
-# Homework (before Thursday)
+# "Super" Flexibility
 
-- Read the **syllabus**, and let me know if you have any questions or concerns. 
+For maximum benefit, complete the assigned reading in advance and come to class ready with questions, and try your best to stick with the assignment schedule posted on the syllabus.
 
-- Join our **Slack** workspace if you haven't yet. 
+- But...
 
-- Install R and R Studio, verify that **R Studio** opens. 
+--
+
+&gt; I am aiming for total flexibility. *We're still in a pandemic and learning in this environment is HARD*. Issues will arise, and that’s ok! Let’s communicate and we can figure out a plan together. **My main goal is to support you and your learning**. 
+
 
 ---
 
-class: center, middle
+class: center, middle, frame
 
 # Introduction to R
 
@@ -366,7 +368,7 @@ Hadley Wickham, the chief data scientist at R Studio and the author of some **am
 
 &gt; It’s easy when you start out programming to get really frustrated and think, “Oh it’s me, I’m really stupid,” or, “I’m not made out to program.” But, that is absolutely not the case. Everyone gets frustrated. I still get frustrated occasionally when writing R code. It’s just a natural part of programming. So, it happens to everyone and gets less and less over time. Don’t blame yourself. Just take a break, do something fun, and then come back and try again later.
 
-If you're finding yourself stuck on a particular exercise and not understanding, take a break, talk to classmates, e-mail me, stop by my office, etc.
+If you're finding yourself stuck on a particular exercise and not understanding, **take a break**, **talk to classmates**, **e-mail/Slack message me**, **schedule a Zoom meeting with me**, etc.
 
 I *promise* you can do this!
 
@@ -399,7 +401,8 @@ Think of `c()` as standing for "*concatenate*" or "*combine*".
 - Type 
     
     ```r
-    c("Never", "gonna", "give", "you", "up,", "never", "gonna", "let", "you", "down")
+    c("Never", "gonna", "give", "you", "up,", 
+      "never", "gonna", "let", "you", "down")
     ```
 
     into your **script** and click "Run".
@@ -730,6 +733,9 @@ y
 ## [1] 1 3 5 7 9
 ```
 
+--
+
+
 ```r
 # Combine x and y into one vector
 c(x, y)
@@ -738,6 +744,8 @@ c(x, y)
 ```
 ## [1] 1 2 3 1 3 5 7 9
 ```
+
+--
 
 When `by = 1`, we can use a shortcut...
 
@@ -819,7 +827,7 @@ mpg[mpg$hwy &gt; 35, ]
 
 ---
 
-class: center, middle
+class: center, middle, frame
 
 # R Markdown
 
@@ -855,6 +863,12 @@ Time for a **demo**!
 - `out.width = "50%"` Makes a figure half the size (you can change the percentage to fit your needs). 
 
 In general, show your code and your results, but not your messages. 
+
+**Some references**
+
+- R Markdown: The Definitive Guide, by Xie, Allaire, and Grolemund ([here](https://bookdown.org/yihui/rmarkdown/))
+
+- R Markdown Cookbook, by Xie, Dervieux, and Riederer ([here](https://bookdown.org/yihui/rmarkdown-cookbook/))
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
