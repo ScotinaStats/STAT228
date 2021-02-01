@@ -210,7 +210,7 @@ knitr::include_graphics("me_grad.jpg")
 **Some information**
 
 - Student Hours (~~in my office~~ on Zoom):
-    - Thursday, 2pm-3pm; Friday 11am-1pm (all times EST)
+    - Monday, 11am-12pm; Thursday, 2pm-3pm (all times EST)
     
     - or by appointment (*please Slack message/email me if you'd like to meet*!!!)
     
