@@ -675,8 +675,6 @@ knitr::include_graphics("ggplot2_meme.jpg")
 ```{r, eval = FALSE, message = FALSE, warning = FALSE}
 library(mdsr) 
 library(tidyverse) # includes ggplot2
-library(nycflights13)
-library(babynames)
 ```
 
 ---
