@@ -25,6 +25,7 @@ library(ggsci)
 library(nycflights13)
 library(ggthemes)
 library(patchwork)
+library(ggbernie)
 ```
 
 class: center, middle, frame
@@ -461,7 +462,8 @@ In general, we use `geom_point()` to construct a scatterplot, where we can speci
 
 We saw this earlier:
 ```{r, eval = FALSE}
-ggplot(data = CIACountries, aes(x = educ, y = gdp, color = net_users)) + 
+ggplot(data = CIACountries, aes(x = educ, y = gdp, 
+                                color = net_users)) + 
   geom_point()
 ```
 
@@ -497,6 +499,25 @@ ggplot(data = CIACountries, aes(x = educ, y = gdp, color = net_users)) +
   geom_smooth(method = "lm", se = FALSE) + 
   labs(x = "Education spending (% of GDP)", y = "GDP per capita ($/person)", 
        color = "Fraction of Internet users")
+```
+
+---
+
+# Bernie Plots
+
+**Bernie plots** are similar to scatterplots. 
+
+- Instead of points, we use *Vermont senator Bernie Sanders*. 
+
+--
+
+```{r, message = FALSE, warning = FALSE, dpi = 300, out.width = "35%"}
+# install.packages("remotes")
+# remotes::install_github("R-CoderDotCom/ggbernie@main")
+library(ggbernie)
+
+ggplot(data = CIACountries, aes(x = educ, y = gdp)) + 
+  geom_bernie(bernie = "sitting") 
 ```
 
 ---

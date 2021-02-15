@@ -4,7 +4,7 @@
     <title>STAT 228: Introduction to Data Science</title>
     <meta charset="utf-8" />
     <meta name="author" content="Anthony Scotina" />
-    <script src="libs/header-attrs-2.3/header-attrs.js"></script>
+    <script src="libs/header-attrs-2.6/header-attrs.js"></script>
     <link rel="stylesheet" href="my-theme.css" type="text/css" />
   </head>
   <body>
@@ -484,7 +484,8 @@ In general, we use `geom_point()` to construct a scatterplot, where we can speci
 We saw this earlier:
 
 ```r
-ggplot(data = CIACountries, aes(x = educ, y = gdp, color = net_users)) + 
+ggplot(data = CIACountries, aes(x = educ, y = gdp, 
+                                color = net_users)) + 
   geom_point()
 ```
 
@@ -531,6 +532,28 @@ ggplot(data = CIACountries, aes(x = educ, y = gdp, color = net_users)) +
 
 ---
 
+# Bernie Plots
+
+**Bernie plots** are similar to scatterplots. 
+
+- Instead of points, we use *Vermont senator Bernie Sanders*. 
+
+--
+
+
+```r
+# install.packages("remotes")
+# remotes::install_github("R-CoderDotCom/ggbernie@main")
+library(ggbernie)
+
+ggplot(data = CIACountries, aes(x = educ, y = gdp)) + 
+  geom_bernie(bernie = "sitting") 
+```
+
+&lt;img src="03-Advanced_Dataviz_files/figure-html/unnamed-chunk-33-1.png" width="35%" /&gt;
+
+---
+
 # Line Graphs (Time Series)
 
 **Line Graphs** are similar to scatterplots. They show the relationship between two *numerical* variables. 
@@ -559,7 +582,7 @@ ggplot(jfk_nov, aes(x = time_hour, y = temp)) +
   geom_line()
 ```
 
-&lt;img src="03-Advanced_Dataviz_files/figure-html/unnamed-chunk-34-1.png" width="50%" /&gt;
+&lt;img src="03-Advanced_Dataviz_files/figure-html/unnamed-chunk-35-1.png" width="50%" /&gt;
 
 ---
 
@@ -628,7 +651,7 @@ ggplot(data = babynames_ant, aes(x = year, y = n)) +
   geom_line()
 ```
 
-&lt;img src="03-Advanced_Dataviz_files/figure-html/unnamed-chunk-40-1.png" width="45%" /&gt;
+&lt;img src="03-Advanced_Dataviz_files/figure-html/unnamed-chunk-41-1.png" width="45%" /&gt;
 
 **What do we still need to modify?**
 
@@ -773,7 +796,7 @@ baby_plot +
 # BEFORE and AFTER
 
 .pull-left[
-![](03-Advanced_Dataviz_files/figure-html/unnamed-chunk-47-1.png)&lt;!-- --&gt;
+![](03-Advanced_Dataviz_files/figure-html/unnamed-chunk-48-1.png)&lt;!-- --&gt;
 
 **Before**
 ]
@@ -781,7 +804,7 @@ baby_plot +
 --
 
 .pull-right[
-![](03-Advanced_Dataviz_files/figure-html/unnamed-chunk-48-1.png)&lt;!-- --&gt;
+![](03-Advanced_Dataviz_files/figure-html/unnamed-chunk-49-1.png)&lt;!-- --&gt;
 
 **After**
 ]
