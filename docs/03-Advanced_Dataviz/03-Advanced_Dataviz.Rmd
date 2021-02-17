@@ -19,6 +19,7 @@ mono_accent(base_color = "#4682B4") #3E8A83?
 
 ```{r, include = FALSE}
 library(tidyverse)
+library(mosaic)
 library(mdsr)
 library(babynames)
 library(ggsci)
@@ -38,11 +39,11 @@ class: center, middle, frame
 
 ```{r, eval = FALSE, message = FALSE, warning = FALSE}
 library(mdsr) 
+library(mosaic)
 library(tidyverse) # includes ggplot2
 library(nycflights13)
 library(babynames)
 library(ggridges)
-library(patchwork)
 ```
 
 ---
@@ -546,27 +547,6 @@ jfk_nov = weather %>%
 ```{r, message = FALSE, warning = FALSE, dpi = 300, out.width = "50%"}
 ggplot(jfk_nov, aes(x = time_hour, y = temp)) + 
   geom_line()
-```
-
----
-
-# Practice
-
-Using the `diamonds` dataset in the `ggplot2` package (and from a previous example), construct a scatterplot that displays the relationship between `carat` and `price`. 
-
-- Add the `color` aesthetic for the `cut` variable (five categories). 
-
-**Note**: This is a larger dataset than those we've used so far (> 50,000 rows), so run this code to take a sample of 1,000 diamonds if it otherwise takes a while to run. 
-
-```{r, eval = FALSE}
-diamonds = diamonds %>%
-  sample_n(1000)
-```
-
-```{r, echo = FALSE, eval = FALSE}
-ggplot(diamonds, aes(x = carat, y = price, color = cut)) + 
-  geom_point() + 
-  geom_smooth(method = "lm", se = FALSE)
 ```
 
 ---

@@ -33,11 +33,11 @@ class: center, middle, frame
 
 ```r
 library(mdsr) 
+library(mosaic)
 library(tidyverse) # includes ggplot2
 library(nycflights13)
 library(babynames)
 library(ggridges)
-library(patchwork)
 ```
 
 ---
@@ -586,24 +586,6 @@ ggplot(jfk_nov, aes(x = time_hour, y = temp)) +
 
 ---
 
-# Practice
-
-Using the `diamonds` dataset in the `ggplot2` package (and from a previous example), construct a scatterplot that displays the relationship between `carat` and `price`. 
-
-- Add the `color` aesthetic for the `cut` variable (five categories). 
-
-**Note**: This is a larger dataset than those we've used so far (&gt; 50,000 rows), so run this code to take a sample of 1,000 diamonds if it otherwise takes a while to run. 
-
-
-```r
-diamonds = diamonds %&gt;%
-  sample_n(1000)
-```
-
-
-
----
-
 class: center, middle, frame
 
 # Extended Example: Baby Names!
@@ -651,7 +633,7 @@ ggplot(data = babynames_ant, aes(x = year, y = n)) +
   geom_line()
 ```
 
-&lt;img src="03-Advanced_Dataviz_files/figure-html/unnamed-chunk-41-1.png" width="45%" /&gt;
+&lt;img src="03-Advanced_Dataviz_files/figure-html/unnamed-chunk-39-1.png" width="45%" /&gt;
 
 **What do we still need to modify?**
 
@@ -796,7 +778,7 @@ baby_plot +
 # BEFORE and AFTER
 
 .pull-left[
-![](03-Advanced_Dataviz_files/figure-html/unnamed-chunk-48-1.png)&lt;!-- --&gt;
+![](03-Advanced_Dataviz_files/figure-html/unnamed-chunk-46-1.png)&lt;!-- --&gt;
 
 **Before**
 ]
@@ -804,7 +786,7 @@ baby_plot +
 --
 
 .pull-right[
-![](03-Advanced_Dataviz_files/figure-html/unnamed-chunk-49-1.png)&lt;!-- --&gt;
+![](03-Advanced_Dataviz_files/figure-html/unnamed-chunk-47-1.png)&lt;!-- --&gt;
 
 **After**
 ]
