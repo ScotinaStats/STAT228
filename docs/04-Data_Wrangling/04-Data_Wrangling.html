@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>STAT 228: Introduction to Data Science</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Anthony Scotina" />
+    <script src="libs/header-attrs-2.6/header-attrs.js"></script>
+    <link rel="stylesheet" href="my-theme.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# STAT 228: Introduction to Data Science
+## Data Wrangling
+### Anthony Scotina
+
+---
+
+
+
+
+
+
+
+
+&lt;!--
+pagedown::chrome_print("~/Dropbox/Teaching/03-Simmons Courses/MATH228-Introduction to Data Science/Lecture Slides/03-Data_Wrangling/03-Data_Wrangling.html")
+--&gt;
+
+# What have we done so far?
+
+**Data Exploration**
+
+
+```r
+library(nycflights13)
+flights
+```
+
+```
+# A tibble: 336,776 x 19
+    year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;          &lt;int&gt;
+ 1  2013     1     1      517            515         2      830            819
+ 2  2013     1     1      533            529         4      850            830
+ 3  2013     1     1      542            540         2      923            850
+ 4  2013     1     1      544            545        -1     1004           1022
+ 5  2013     1     1      554            600        -6      812            837
+ 6  2013     1     1      554            558        -4      740            728
+ 7  2013     1     1      555            600        -5      913            854
+ 8  2013     1     1      557            600        -3      709            723
+ 9  2013     1     1      557            600        -3      838            846
+10  2013     1     1      558            600        -2      753            745
+# … with 336,766 more rows, and 11 more variables: arr_delay &lt;dbl&gt;,
+#   carrier &lt;chr&gt;, flight &lt;int&gt;, tailnum &lt;chr&gt;, origin &lt;chr&gt;, dest &lt;chr&gt;,
+#   air_time &lt;dbl&gt;, distance &lt;dbl&gt;, hour &lt;dbl&gt;, minute &lt;dbl&gt;, time_hour &lt;dttm&gt;
+```
+
+---
+
+# What have we done so far?
+
+**Data Visualization**
+
+
+```r
+flights_frontier = flights %&gt;%
+  filter(carrier == "F9")
+
+ggplot(flights_frontier, aes(x = dep_delay, y = arr_delay)) + 
+  geom_point(alpha = 0.2) + 
+  labs(x = "Departure Delay (in minutes)", 
+       y = "Arrival Delay (in minutes)", 
+       title = "Flights from NYC via Frontier Airlines", 
+       subtitle = "Year: 2013") + 
+  theme_minimal()
+```
+
+---
+
+# What have we done so far?
+
+**Data Visualization**
+
+&lt;img src="04-Data_Wrangling_files/figure-html/unnamed-chunk-5-1.png" width="60%" /&gt;
+
+---
+
+# What will we do now?
+
+**Data Wrangling**
+
+
+```r
+*flights_frontier = flights %&gt;%
+* filter(carrier == "F9")
+
+ggplot(flights_frontier, aes(x = dep_delay, y = arr_delay)) + 
+  geom_point(alpha = 0.2) + 
+  labs(x = "Departure Delay (in minutes)", 
+       y = "Arrival Delay (in minutes)") + 
+  theme_minimal()
+```
+
+---
+
+# Data Wrangling in R? 
+
+**dplyr** (D-plyer, **NOT** *dipler*)
+
+.center[
+&lt;img src="dplyr_hex.png" width="40%" /&gt;
+]
+
+---
+
+# Needed Packages 
+
+
+```r
+library(tidyverse) # Automatically loads ggplot2 and dplyr
+library(nycflights13)
+library(mdsr)
+library(gapminder)
+```
+
+---
+
+class: middle, center
+
+# The Pipe Operator `%&gt;%`
+
+---
+
+# The Pipe Operator `%&gt;%`
+
+Say you want to perform a set of operations on the `flights` data frame:
+
+1. Take `flights`, then...
+
+--
+
+2. `filter` for *only* Jet Blue flights (carrier code "B6"), then...
+
+--
+
+3. `group_by` departure airport (`origin`), then...
+
+--
+
+4. `summarize` the *average flight distance* (`distance`) by departure airport. 
+
+---
+
+# The Pipe Operator `%&gt;%`
+
+Say you want to perform a set of operations on the `flights` data frame:
+
+Use the **pipe operator** (`%&gt;%`), and write a *pipeline*:
+
+
+```r
+flights %&gt;%
+  filter(carrier == "B6") %&gt;%
+  group_by(origin) %&gt;%
+  summarize(mean_distance = mean(distance))
+```
+
+```
+# A tibble: 3 x 2
+  origin mean_distance
+  &lt;chr&gt;          &lt;dbl&gt;
+1 EWR             815.
+2 JFK            1114.
+3 LGA            1030.
+```
+
+---
+
+# The Pipe Operator `%&gt;%`
+
+You would read this sequence as:
+
+1. Take `flights`, then...
+
+2. Use this output as the input to the next function, `filter`, then...
+
+3. Use this output as the input to the next function, `group_by`, then...
+
+4. Use this output as the input to the next function, `summarize`.
+
+--
+
+**The starting value will always be the data frame!**
+
+- The subsequent arguments say *what to do* to the data frame. 
+
+- The result will the transformed/modified data frame that you want. 
+    
+---
+
+# The Pipe Operator `%&gt;%`
+
+In `dplyr`, the pipe operator (`%&gt;%`) plays a very similar role to the `+` operator when adding layers in `ggplot2`.
+
+You can even save "piped" operations as a new data frame. In fact, we have already done it!
+
+**Example** (from earlier): November weather at the JFK airport in New York:
+
+
+```r
+jfk_nov = weather %&gt;%
+  filter(origin == "JFK" &amp; month == 11)
+```
+
+---
+
+# `%&gt;%` Intuition
+
+## My *morning routine*
+
+
+```r
+anthony %&gt;%
+  wake_up(time = "7:30") %&gt;%
+  get_out_of_bed() %&gt;%
+  make_smoothie(ingredients = c("spinach", "raspberries", 
+                                "blueberries", "strawberries",
+                                "protein", "milk")) %&gt;%
+  drink_coffee() %&gt;%
+  boot_up_laptop(RStudio = TRUE, Zoom = TRUE, Spotify = TRUE)
+```
+
+---
+
+# The Pipe Operator `%&gt;%`
+
+**Keyboard "shortcut"**
+
+[control]+[shift]+[m]
+
+.pull-left[
+&lt;img src="pipe.jpg" width="400" /&gt;
+]
+
+.pull-right[
+&lt;img src="pipe_hex.jpg" width="633" /&gt;
+]
+
+---
+
+class: middle, center
+
+# A Grammar for Data Wrangling
+
+---
+
+# A Grammar for Data Wrangling
+
+Similar to how `ggplot2` provides a *grammar* for **data visualization**... 
+
+- `dplyr` provides a *grammar* for **data transformation**. 
+
+--
+
+**Five verbs for working with data in a data frame**:
+
+- `select()`: take a subset of *columns* (e.g., variables)
+
+- `filter()`: take a subset of *rows* (e.g., observations, cases, individuals)
+
+- `mutate()`: add or modify *existing columns*
+
+- `arrange()`: sort rows
+
+- `summarize()`: aggregate data *across rows* (e.g., grouped means)
+
+
+Each of these functions takes a *data frame* as its first argument (similar to `ggplot()`). 
+
+- They can also be used in conjunction with each other (e.g., in a *pipeline*). 
+
+---
+
+# `select()` columns
+
+.center[
+&lt;img src="dplyr_select.png" width="359" /&gt;
+]
+
+`select()` allows you to return a *subset* of **columns** of a data frame. 
+
+- This might not seem like much, but data frames with *many* columns (i.e., hundreds of variables) are not uncommon. 
+
+---
+
+# `select()` columns
+
+The `gapminder` data frame in the `gapminder` package contains data on life expectancy, GDP per capita, and population by country, spanning 1952-2007 (in increments of 5 years). 
+
+
+```r
+View(gapminder)
+```
+
+--
+
+Suppose we want a data frame with *only* the `country`, `year`, and `lifeExp` variables (columns). 
+
+
+```r
+gapminder_new = gapminder %&gt;%
+  select(country, year, lifeExp)
+```
+
+---
+
+# `filter()` rows
+
+While `select()` is useful in cutting out unwanted columns (especially if there are *many* columns), we might still need to perform other operations on the data. 
+
+.center[
+&lt;img src="dplyr_filter.png" width="412" /&gt;
+]
+
+`filter()` allows you to return a *subset* of **rows** of a data frame. 
+
+- Specify criteria about the values of a variables in your dataset.
+
+- `filter()` out only those rows that match that criteria.
+
+---
+
+# `filter()` rows
+
+Using the same `gapminder` data from earlier, let's obtain data for *only the United States*:
+
+
+```r
+gapminder_new = gapminder %&gt;%
+  filter(country == "United States")
+```
+
+**Reminder**: While `=` (and `&lt;-`) are used for **assignment**, a double `==` is used to *test for equality*. 
+
+---
+
+# `select()` and `filter()` together
+
+Similar to when using *only* `select()`, we might want to perform other operations on the data in conjunction with `filter()`. 
+
+- We can conveniently construct a single *pipeline* with all of the operations!
+
+
+```r
+gapminder_new = gapminder %&gt;%
+  select(country, year, lifeExp) %&gt;%
+  filter(country == "United States")
+```
+
+--
+
+You can even add a plot at the end of a pipeline!
+
+
+```r
+gapminder %&gt;%
+  select(country, year, lifeExp) %&gt;%
+  filter(country == "United States") %&gt;%
+  ggplot(aes(x = year, y = lifeExp)) + 
+  geom_line() + 
+  labs(x = "Year", y = "Life Expectancy", 
+       title = "US Life Expectancy")
+```
+
+---
+
+# Non-pipeline equivalent
+
+Here is the equivalent code that does not use the `%&gt;%` operator:
+
+
+```r
+gapminder_new = select(gapminder, country, year, lifeExp)
+gapminder_new = filter(gapminder_new, country == "United States")
+ggplot(gapminder_new, aes(x = year, y = lifeExp)) + 
+  geom_line() + 
+  labs(x = "Year", y = "Life Expectancy", 
+       title = "US Life Expectancy")
+```
+
+---
+
+# Filtering on multiple criteria
+
+We are not limited to a single criterion when using `filter()`. 
+
+- We can string together multiple criteria with `&amp;` ("and"). 
+
+
+```r
+gapminder_new = gapminder %&gt;%
+  filter(country %in% c("United States", "Canada") &amp;
+           year &gt;= 1980)
+```
+
+The result of this pipeline is a data frame that includes data on *only* the countries **United States** *or* **Canada**, in **1980 or later**.
+
+--
+
+**Note**: We use the `%in%` to check for rows with `country` equal to *either* `"United States"` **or** `"Canada"`.
+
+---
+
+# Practice
+
+Using the `flights` dataset in the `nycflights13` package...
+
+1. Filter `flights` for all rows that:
+
+    - Departed from JFK (`origin == "JFK"`) airport **and**
+
+    - Were heading to Burlington, Vermont (`dest == "BTV"`) **or** Seattle, Washington (`dest == "SEA"`) **and**
+
+    - Departed in the months of October, November, or December.
+
+2. Select the destination, departure delay, arrival delay, and flight carrier variables from the data. 
+
+3. If you're feeling up to it, use the resulting data to make a **scatterplot** of arrival delay versus departure delay!
+
+
+ 
+---
+
+# `mutate()` existing columns
+
+`mutate()` is a function that defines and inserts *new variables* into a data frame as *columns*. 
+
+.center[
+&lt;img src="dplyr_mutate.png" width="529" /&gt;
+]
+
+---
+
+# `mutate()` existing columns
+
+Suppose we wanted to recover each state's **total GDP**. 
+
+
+```r
+head(gapminder, 5)
+```
+
+```
+## # A tibble: 5 x 6
+##   country     continent  year lifeExp      pop gdpPercap
+##   &lt;fct&gt;       &lt;fct&gt;     &lt;int&gt;   &lt;dbl&gt;    &lt;int&gt;     &lt;dbl&gt;
+## 1 Afghanistan Asia       1952    28.8  8425333      779.
+## 2 Afghanistan Asia       1957    30.3  9240934      821.
+## 3 Afghanistan Asia       1962    32.0 10267083      853.
+## 4 Afghanistan Asia       1967    34.0 11537966      836.
+## 5 Afghanistan Asia       1972    36.1 13079460      740.
+```
+
+The `gapminder` dataset has the `pop` and `gdpPercap` variables already, so we can *create* a new `gdp` variable by multiplying them together. 
+
+---
+
+# `mutate()` existing columns
+
+Using `mutate()`, we can create a new variable called `gdp` by multiplying `pop` and `gdpPercap`:
+
+
+```r
+gapminder_new = gapminder %&gt;%
+  mutate(gdp = pop*gdpPercap)
+```
+
+--
+
+We could use `mutate()` along with `filter()` and `select()` to see how the total GDP has changed in the United States over the years:
+
+```r
+gapminder %&gt;%
+  filter(country == "United States") %&gt;%
+  mutate(gdp = pop*gdpPercap) %&gt;%
+  select(country, year, gdp)
+```
+
+---
+
+# `mutate()`
+
+In the `weather` data frame from the `nycflights13` package, the variable `temp` is temperature in **degrees Fahrenheit**. To convert this to **degrees Celcius**, we use the formula:
+
+`$$\text{temp in C}=\frac{\text{temp in F}-32}{1.8}$$`
+
+--
+
+Using `mutate`, we can create the variable `temp_C` using the existing `temp`:
+
+```r
+weather = weather %&gt;%
+  mutate(temp_C = (temp - 32)/1.8)
+View(weather)
+```
+
+---
+
+# `mutate()`
+
+
+```r
+weather = weather %&gt;%
+  mutate(temp_C = (temp - 32)/1.8)
+```
+
+Note that by calling this new data frame `weather`, we *overwrite* the existing one that comes with the `nycflights13` package. 
+
+- **Why?** We are not *losing* any information; only *adding* new information. 
+
+- The original `temp` variable is still part of the data frame. 
+
+---
+
+# `rename()`
+
+`rename()` is a relatively simple `dplyr` function that, you guessed it, *renames* existing variables. 
+
+Because we just created a variable named `temp_C`, let's *rename* the `temp` variable to `temp_F`:
+
+```r
+weather = weather %&gt;%
+  rename(temp_F = temp)
+```
+
+- This *will* overwrite the `temp` column (unless you assign this pipeline to a name other than `weather`), but analyzing `temp.F` and `temp.C` is probably more straightforward. 
+
+---
+
+# `arrange()` rows
+
+The `arrange()` function will *sort the rows* of a data frame by a pre-specified *column*. 
+
+.center[
+&lt;img src="dplyr_arrange.png" width="228" /&gt;
+]
+
+While we can do this as an *exploratory* step in the `View()` window, `arrange()` allows us to perform additional operations on a custom-sorted data frame. 
+
+---
+
+# `arrange()` rows
+
+The `gapminder` data frame is currently arranged by *country*, followed by *year*. 
+
+
+```r
+head(gapminder, 5)
+```
+
+```
+## # A tibble: 5 x 6
+##   country     continent  year lifeExp      pop gdpPercap
+##   &lt;fct&gt;       &lt;fct&gt;     &lt;int&gt;   &lt;dbl&gt;    &lt;int&gt;     &lt;dbl&gt;
+## 1 Afghanistan Asia       1952    28.8  8425333      779.
+## 2 Afghanistan Asia       1957    30.3  9240934      821.
+## 3 Afghanistan Asia       1962    32.0 10267083      853.
+## 4 Afghanistan Asia       1967    34.0 11537966      836.
+## 5 Afghanistan Asia       1972    36.1 13079460      740.
+```
+
+Suppose we instead would like to sort `gapminder` by *year*, followed by *country*. 
+
+---
+
+# `arrange()` rows
+
+
+```r
+gapminder %&gt;%
+  arrange(year, country)
+```
+
+```
+## # A tibble: 1,704 x 6
+##    country     continent  year lifeExp      pop gdpPercap
+##    &lt;fct&gt;       &lt;fct&gt;     &lt;int&gt;   &lt;dbl&gt;    &lt;int&gt;     &lt;dbl&gt;
+##  1 Afghanistan Asia       1952    28.8  8425333      779.
+##  2 Albania     Europe     1952    55.2  1282697     1601.
+##  3 Algeria     Africa     1952    43.1  9279525     2449.
+##  4 Angola      Africa     1952    30.0  4232095     3521.
+##  5 Argentina   Americas   1952    62.5 17876956     5911.
+##  6 Australia   Oceania    1952    69.1  8691212    10040.
+##  7 Austria     Europe     1952    66.8  6927772     6137.
+##  8 Bahrain     Asia       1952    50.9   120447     9867.
+##  9 Bangladesh  Asia       1952    37.5 46886859      684.
+## 10 Belgium     Europe     1952    68    8730405     8343.
+## # … with 1,694 more rows
+```
+
+---
+
+# `arrange()` rows (in descending order)
+
+By default, `arrange()` will sort rows in **ascending order** (least to greatest, or *alphabetically*) based on the column(s) specified. 
+
+- To sort in **descending order**, use `desc()` around any of the variables specified in `arrange()`. 
+
+--
+
+Let's take *only data from 2007* and sort by the *largest to smallest* life expectancy:
+
+
+```r
+gapminder %&gt;%
+  filter(year == 2007) %&gt;%
+  arrange(desc(lifeExp)) 
+```
+
+---
+
+# `summarize()` with `group_by()`
+
+The *verb-named functions* that we have looked at so far have all provided different ways to **manipulate** a data frame. 
+
+- `select()`, `filter()`, `mutate()`, `rename()`, `arrange()`
+
+- The extent of the analysis we can perform *solely by manipulating a data frame* is limited. 
+
+--
+
+`summarize()` and `group_by()` allow us to make calculations and *comparisons*. 
+
+- `summarize()` (with or without `group_by()`) collapses the data into rows based on **summary statistics**. 
+
+.center[
+&lt;img src="dplyr_summarize.png" width="342" /&gt;
+]
+
+---
+
+# `summarize()`
+
+The important step in `summarize()` is specifying **how** we want to reduce the data to a single set of summary statistics. 
+- **Examples**: `mean()`, `sd()`, `median()`, `IQR()`, `max()`, `n()`, and many more
+
+--
+
+Using the `weather` data frame, let's calculate the **mean** and **standard deviation** of `temp_F`:
+
+```r
+weather %&gt;%
+  summarize(mean_temp_F = mean(temp_F, na.rm = TRUE), 
+            sd_temp_F = sd(temp_F, na.rm = TRUE))
+```
+
+```
+## # A tibble: 1 x 2
+##   mean_temp_F sd_temp_F
+##         &lt;dbl&gt;     &lt;dbl&gt;
+## 1        55.3      17.8
+```
+
+--
+
+**Note**: We added `na.rm = TRUE` to remove `NA` (missing values) from each calculation. 
+- Otherwise, the output for `mean()` and `sd()` would also be `NA`. 
+
+---
+
+# `summarize()`
+
+Given the nature of the `weather` data frame, why might the summary statistics in the previous slide contain *redundant information*?
+
+--
+
+
+```r
+weather %&gt;%
+  count(origin)
+```
+
+```
+## # A tibble: 3 x 2
+##   origin     n
+##   &lt;chr&gt;  &lt;int&gt;
+## 1 EWR     8703
+## 2 JFK     8706
+## 3 LGA     8706
+```
+
+Temperature was recorded each hour in 2013 at *three different NYC airports*. 
+
+- Presumably, the temperature will be similar at each of the three airports at any given hour. 
+
+--
+
+**Also**, there are definitely *seasonal/monthly* trends in temperature, especially in a state like New York. 
+
+---
+
+# `group_by()` rows
+
+This is where `group_by()` comes in!
+
+The `summarize()` function is *almost always* used in conjunction with `group_by()`. 
+
+.center[
+&lt;img src="dplyr_group_by.png" width="70%" /&gt;
+]
+
+We just used `summarize()` to calculate the **mean** and **standard deviation** of New York temperature in 2013. 
+
+- But what if we want to calculate these summary statistics *for each month*?
+
+- We can use `group_by()` in the pipeline to generate *aggregate* summary statistics!
+
+---
+
+# `group_by()`
+
+Before running the code below, *what do you think it does*?
+
+
+```r
+weather_temp_month = weather %&gt;%
+  filter(origin == "JFK") %&gt;% # Just focus on one NYC airport
+  group_by(month) %&gt;%
+  summarize(mean_temp_F = mean(temp_F, na.rm = TRUE), 
+            sd_temp_F = sd(temp_F, na.rm = TRUE))
+weather_temp_month
+```
+
+--
+
+Because **temperature** usually varies by *season*, or *month*, it makes sense to calculate monthly summary statistics. 
+
+- We could've also grouped by `origin` (i.e., `group_by(month, origin)`), but the monthly average temperature is probably very similar at the three airports. 
+
+---
+
+# `group_by()`
+
+The code on the previous slide is *identical* to the code we used when introducing `summarize()`...
+
+- Except we added the first step `group_by(month)`, which does exactly what it sounds like: it **groups by** *month* before calculating summary statistics. 
+
+--
+
+**Note**: We never use the `group_by()` operation by itself. We always combine it with a function that performs a calculation, such as `summarize()`. 
+
+For example, run the following. You'll notice that nothing really changes from the initial data frame. 
+
+```r
+weather %&gt;%
+  group_by(month)
+```
+
+---
+
+# Recap: The S.S. FAM
+
+.pull-left[
+- `select()`: choose columns by name
+
+- `summarize()` (usually with `group_by()`): reduce variables to summary values
+
+- `filter()`: pick a subset of rows matching criteria
+
+- `arrange()`: reorder rows
+
+- `mutate()`: add new variables
+]
+
+.pull-right[
+&lt;img src="boat.jpg" width="4000" /&gt;
+]
+
+There are a *handful* of other functions we'll cover, but you can do a lot with these five!
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"countIncrementalSlides": false,
+"highlightLines": true
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
