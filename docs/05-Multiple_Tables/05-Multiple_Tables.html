@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>STAT 228: Introduction to Data Science</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Anthony Scotina" />
+    <script src="libs/header-attrs-2.6/header-attrs.js"></script>
+    <link rel="stylesheet" href="my-theme.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# STAT 228: Introduction to Data Science
+## Data Wrangling on Multiple Tables
+### Anthony Scotina
+
+---
+
+
+
+
+
+
+
+
+&lt;!--
+pagedown::chrome_print("~/Dropbox/Teaching/03-Simmons Courses/MATH228-Introduction to Data Science/Lecture Slides/03-Data_Wrangling/03-Data_Wrangling.html")
+--&gt;
+
+# Needed Packages
+
+
+```r
+library(tidyverse)
+library(nycflights13)
+```
+
+---
+
+class: center, middle, frame
+
+# Combining Multiple Tables
+
+---
+
+# Combining Multiple Tables
+
+So far we have been working with *single data frames*, which are reminiscent of single *spreadsheets/tables*. 
+
+- However, many data projects contain *multiple tables* used together. 
+
+- Luckily, `dplyr` gives efficient means to work with multiple tables. 
+
+--
+
+One family of verbs that we will use to work with multiple tables is called **mutating joins**. 
+
+- These add new variables to one data frame from *matching observations* in another
+
+(i) `inner_join()`
+
+(ii) `full_join()`
+
+(iii) `left_join()` and `right_join()`
+
+(iv) `anti_join()`
+    
+---
+
+# Introductory Example
+
+For the next few slides:
+
+
+```r
+table1 = data.frame(
+  value = c(1, 2, 3), 
+  x = c("a", "b", "c"))
+table1
+```
+
+```
+##   value x
+## 1     1 a
+## 2     2 b
+## 3     3 c
+```
+
+
+```r
+table2 = data.frame(
+  value = c(1, 2, 4), 
+  y = c("b", "c", "d"))
+table2
+```
+
+```
+##   value y
+## 1     1 b
+## 2     2 c
+## 3     4 d
+```
+
+---
+
+# `inner_join()` and `left_join()`
+
+
+```r
+table1 %&gt;%
+  inner_join(table2, by = "value")
+```
+
+```
+##   value x y
+## 1     1 a b
+## 2     2 b c
+```
+
+--
+
+
+```r
+table1 %&gt;% 
+  left_join(table2, by = "value")
+```
+
+```
+##   value x    y
+## 1     1 a    b
+## 2     2 b    c
+## 3     3 c &lt;NA&gt;
+```
+
+---
+
+# `full_join()` and `right_join()`
+
+
+```r
+table1 %&gt;%
+  full_join(table2, by = "value")
+```
+
+```
+##   value    x    y
+## 1     1    a    b
+## 2     2    b    c
+## 3     3    c &lt;NA&gt;
+## 4     4 &lt;NA&gt;    d
+```
+
+--
+
+
+```r
+table1 %&gt;% 
+  right_join(table2, by = "value")
+```
+
+```
+##   value    x y
+## 1     1    a b
+## 2     2    b c
+## 3     4 &lt;NA&gt; d
+```
+
+---
+
+# `anti_join()`
+
+
+```r
+table1 %&gt;% 
+  anti_join(table2, by = "value")
+```
+
+```
+##   value x
+## 1     3 c
+```
+
+
+```r
+table2 %&gt;% 
+  anti_join(table1, by = "value")
+```
+
+```
+##   value y
+## 1     4 d
+```
+
+---
+
+# `nycflights13`
+
+The `nycflights13` package contains *five data frames*, though we've mainly worked with two. 
+- `flights`, `weather`, `airlines`, `airports`, `planes`
+
+--
+
+From *R for Data Science*:
+
+.center[
+&lt;img src="relational_nycflights.png" width="380" /&gt;
+]
+
+---
+
+# Why so many data frames?
+
+
+```r
+dim(flights)
+```
+
+```
+## [1] 336776     19
+```
+
+
+```r
+head(airlines, 5)
+```
+
+```
+## # A tibble: 5 x 2
+##   carrier name                  
+##   &lt;chr&gt;   &lt;chr&gt;                 
+## 1 9E      Endeavor Air Inc.     
+## 2 AA      American Airlines Inc.
+## 3 AS      Alaska Airlines Inc.  
+## 4 B6      JetBlue Airways       
+## 5 DL      Delta Air Lines Inc.
+```
+
+Each row in `flights` is a *single flight*. 
+
+- One variable, `carrier` is an abbreviated carrier code for each of the 336,776 departing flights. 
+- It would be computationally inefficient to store the *complete airline name* in every row of `flights`. 
+
+---
+
+# Why so many data frames?
+
+
+```r
+flights %&gt;%
+  select(carrier, dep_delay, dest) %&gt;%
+  slice(1:5)
+```
+
+```
+## # A tibble: 5 x 3
+##   carrier dep_delay dest 
+##   &lt;chr&gt;       &lt;dbl&gt; &lt;chr&gt;
+## 1 UA              2 IAH  
+## 2 UA              4 IAH  
+## 3 AA              2 MIA  
+## 4 B6             -1 BQN  
+## 5 DL             -6 ATL
+```
+
+While `flights` doesn't contain the complete name of each airline, it does have a **key** that links the data to the full airline names in the `airlines` data frame.
+
+- The **key** is `carrier`, which is a shared variable between `flights` and `airlines`. 
+
+---
+
+# `inner_join()`
+
+`inner_join()` will allow us to append the *full names of the airlines that managed each flight* to the main `flights` data frame. 
+
+- To do so, we match up the *rows* in `flights` wil the rows in `airlines` that share the same *key* (`carrier`). 
+
+
+```r
+flightsJoined = flights %&gt;%
+  inner_join(airlines, by = "carrier") %&gt;%
+  select(carrier, name, flight, origin, dest, dep_delay) 
+head(flightsJoined, 5)
+```
+
+```
+## # A tibble: 5 x 6
+##   carrier name                   flight origin dest  dep_delay
+##   &lt;chr&gt;   &lt;chr&gt;                   &lt;int&gt; &lt;chr&gt;  &lt;chr&gt;     &lt;dbl&gt;
+## 1 UA      United Air Lines Inc.    1545 EWR    IAH           2
+## 2 UA      United Air Lines Inc.    1714 LGA    IAH           4
+## 3 AA      American Airlines Inc.   1141 JFK    MIA           2
+## 4 B6      JetBlue Airways           725 JFK    BQN          -1
+## 5 DL      Delta Air Lines Inc.      461 LGA    ATL          -6
+```
+
+---
+
+# `inner_join()`
+
+
+```r
+flightsJoined = flights %&gt;%
+  inner_join(airlines, by = "carrier") %&gt;%
+  select(carrier, name, flight, origin, dest, dep_delay) 
+```
+
+The resulting data frame from `inner_join()` contains *only the rows that have matching key values in both tables* (`flights` and `carrier`). 
+- Each row in `flights` has *exactly one* corresponding entry in `airlines`. 
+
+
+```r
+nrow(flights)
+```
+
+```
+## [1] 336776
+```
+
+```r
+nrow(flightsJoined)
+```
+
+```
+## [1] 336776
+```
+
+--
+
+**Note**: *Always* check your row count after using a `_join()` function to make sure it is what you expect. 
+
+---
+
+# `inner_join()`
+
+Instead of appending `carrier` names from `airlines`, let's instead append the **destination** airport names via the `airports` table (run `View(airports)`).
+
+--
+
+The **matching key** between the `flights` and `airports` tables are:
+
+- `dest` (from `flights`)
+- `faa` (from `airports`)
+
+--
+
+
+```r
+flightsJoinedDest = flights %&gt;%
+  inner_join(airports, by = c("dest" = "faa"))
+
+nrow(flights)
+```
+
+```
+## [1] 336776
+```
+
+```r
+nrow(flightsJoinedDest)
+```
+
+```
+## [1] 329174
+```
+
+--
+
+But... `\(329174\neq336776\)`! This means that there were *some* destination airports in `flights` that didn't actually appear in `airports`. 
+
+---
+
+# `left_join()`
+
+
+```r
+flights %&gt;%
+  inner_join(airports, by = c("dest" = "faa")) %&gt;%
+  nrow()
+```
+
+```
+## [1] 329174
+```
+
+This is not the same as the number of rows in the original `flights` table! This means that there were *some* destination airports in `flights` that didn't actually appear in `airports`
+
+---
+
+# `left_join()`
+
+We use `left_join()` when we want to include **all** rows in one table (the "left" table), and *only* rows in the other table with a matching "key" variable. 
+
+- `right_join()` works similarly, just in the other direction. 
+
+
+```r
+flightsJoinedLeft = flights %&gt;%
+  left_join(airports, by = c("dest" = "faa"))
+
+nrow(flights)
+```
+
+```
+## [1] 336776
+```
+
+```r
+nrow(flightsJoinedLeft)
+```
+
+```
+## [1] 336776
+```
+
+--
+
+If a value of `dest` **does not** appear in `airports`, the `airports` columns will appear as `NA` in the left-joined table. 
+
+---
+
+# A Closer Inspection
+
+We can use the `setdiff()` function to see which elements are in one vector, but not the other. 
+
+
+```r
+setdiff(flights$dest, airports$faa)
+```
+
+```
+## [1] "BQN" "SJU" "STT" "PSE"
+```
+
+--
+
+**From Google**:
+
+`BQN`: Rafael Hernandez Airport (in Puerto Rico)
+
+`SJU`: Luis Muñoz Marín International Airport (in Puerto Rico)
+
+`STT`: Cyril E. King Airport (in the U.S. Virgin Islands)
+
+`PSE`: Mercedita/Ponce International Airport (in Puerto Rico)
+
+--
+
+This means that any flights recorded in the `flights` table that had destinations (i.e., `dest`) to any of these airports cannot be joined with the `airports` table. 
+
+- Because these `dest` airports are not included in the `airports` table!
+
+---
+
+# `left_join()`
+
+When using `left_join()` between `flights` and `airports`, the four airports *that don't appear in* `airports` **will still be included in the joined table**. 
+
+- Their `tzone` (and all other values in `airports`) will be `NA`. 
+
+
+```r
+flights %&gt;%
+  left_join(airports, by = c("dest" = "faa")) %&gt;%
+  filter(dest %in% c("LAX", "BQN", "SJU", "STT", "PSE")) %&gt;%
+  select(dest, dep_delay, name, lat, lon, tzone) %&gt;%
+  head(5)
+```
+
+```
+## # A tibble: 5 x 6
+##   dest  dep_delay name               lat   lon tzone              
+##   &lt;chr&gt;     &lt;dbl&gt; &lt;chr&gt;            &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;              
+## 1 BQN          -1 &lt;NA&gt;              NA     NA  &lt;NA&gt;               
+## 2 LAX          -2 Los Angeles Intl  33.9 -118. America/Los_Angeles
+## 3 SJU           0 &lt;NA&gt;              NA     NA  &lt;NA&gt;               
+## 4 SJU          -2 &lt;NA&gt;              NA     NA  &lt;NA&gt;               
+## 5 LAX          -2 Los Angeles Intl  33.9 -118. America/Los_Angeles
+```
+
+---
+
+# `right_join()`
+
+We use `right_join()` when we want to include **all** rows in one table (the "right" table), and *only* rows in the other table with a matching "key" variable. 
+
+- `left_join()` works similarly, just in the other direction. 
+
+
+```r
+flightsJoinedRight = flights %&gt;%
+  right_join(airports, by = c("dest" = "faa"))
+
+nrow(flights)
+```
+
+```
+## [1] 336776
+```
+
+```r
+nrow(flightsJoinedRight)
+```
+
+```
+## [1] 330531
+```
+
+
+```r
+setdiff(airports$faa, flights$dest) # Too many!
+```
+
+---
+
+# `full_join()`
+
+`full_join()` works similarly to `inner_join()`, it just doesn't remove *any* rows. 
+
+- If any rows from either table **DO NOT** share a matching key, those will still be included with `NA` values under the columns from the *other* table. 
+
+
+```r
+flightsJoinedFull = flights %&gt;%
+  full_join(airports, by = c("dest" = "faa"))
+
+nrow(flights)
+```
+
+```
+## [1] 336776
+```
+
+```r
+nrow(flightsJoinedFull)
+```
+
+```
+## [1] 338133
+```
+
+--
+
+This included *all* of the airports that did not appear in `flights`. 
+
+- Since these airports were *not* destinations from NYC in 2013, their flight information includes `NA` values. 
+
+---
+
+# `anti_join()`
+
+To be honest, I haven't used this one very much...it's basically the *opposite* of `inner_join()`. 
+
+- `anti_join()` returns all rows from one table **without** a match in the other table. 
+
+
+```r
+flightsJoinedAnti = flights %&gt;%
+  anti_join(airports, by = c("dest" = "faa"))
+
+nrow(flights)
+```
+
+```
+## [1] 336776
+```
+
+```r
+nrow(flightsJoinedAnti)
+```
+
+```
+## [1] 7602
+```
+
+--
+
+In `flightsJoinedAnti`, the **only rows kept** are the ones that have values of `dest` that do **NOT** appear in `airports`. 
+
+---
+
+# Putting it all together
+
+**Let's compute the number of flights from NYC to each destination, but also include information about each destination airport (i.e., the full name)**
+
+--
+
+
+```r
+dest_counts = flights %&gt;%
+  group_by(dest) %&gt;%
+  summarize(num_flights = n()) %&gt;%
+  arrange(desc(num_flights)) %&gt;%
+  left_join(airports, by = c("dest" = "faa")) %&gt;%
+  rename(airport_name = name) 
+```
+
+---
+
+# Putting it all together
+
+**Let's compute the number of flights from NYC to each destination, but also include information about each destination airport (i.e., the full name)**
+
+1. `summarize()` calculated the *number* of flights to *each destination* (using `group_by()`)
+
+2. `arrange()` sorted flight counts in *descending order* based on most "popular" destination
+
+3. `left_join()` linked the airport `name` in the `airports` data frame to the summarized data frame based on the *keys* `dest` and `faa`. 
+    - `NA` values were returned if a `dest` was not in `airports`
+
+4. `rename()` renamed the `name` column to `airport_name` for clarity. 
+
+---
+
+# Practice (joining on multiple keys)
+
+Use `inner_join()` to join the `weather` data to the `flights` data. 
+
+- **Hint**: There are multiple *keys* you must link in each table, but they share the same names. 
+    - In other words, multiple columns act to *uniquely identify* each row in `weather` (`month == 1`, `day == 1` is different from `month == 2`, `day == 1`).
+    
+After using `inner_join()`, `select()` the following columns: `month`, `day`, `origin`, `dep_delay`, `temp_F` (or `temp` if you're using the original data). 
+
+.center[
+&lt;img src="relational_nycflights.png" width="380" /&gt;
+]
+
+---
+
+# Solution
+
+
+```r
+flights_weather_joined = flights %&gt;%
+  inner_join(weather, by = c("year", "month", "day", "hour", "origin")) %&gt;%
+  select(month, day, origin, dep_delay, temp) 
+nrow(flights_weather_joined)
+View(flights_weather_joined)
+```
+
+**Note**: Using `left_join()` would've returned a table with the *same number of rows as* `flights`. 
+
+- The difference in row counts between `inner_join()` and `left_join()` is probably due to flights not departing in *every hour*.
+    - The `hour` column in `flights` won't contain the numbers 0 through 23 for *all days* like the `weather` table does. 
+
+---
+
+class: center, middle, frame
+
+# Writing Functions in R
+
+---
+
+# Functions
+
+A **function** is a *powerful* way to *automate* a common task in R (or in any programming language). 
+
+--
+
+Have you ever found yourself with code that looks like this?
+
+```r
+data_name_1 %&gt;%
+  # Do something here 
+  ...
+
+data_name_2 %&gt;%
+  # Do that SAME something here
+  ...
+
+data_name_3 %&gt;%
+  # I'm getting sick of typing the
+  # same thing over and over...
+  ...
+```
+
+---
+
+# Functions vs. Copy/Paste
+
+From *R for Data Science*:
+
+**Three advantages to functions vs. copy/paste**:
+
+1. You can give a function an evocative name that makes your code easy to understand. 
+
+2. As requirements change, you only need to update code in one place, instead of many.
+
+3. You eliminate the chance of making incidental mistakes when you copy and paste. 
+
+--
+
+Writing *good functions* is an art, and we are all constantly learning better ways to improve writing functions (and code in general). 
+
+---
+
+# Functions vs. Copy/Paste
+
+.center[
+&lt;img src="function_tweet.png" width="381" /&gt;
+]
+
+---
+
+# When should you write a function?
+
+
+```r
+# Generating fake data...
+set.seed(12)
+fake_data = data.frame(
+  a = rnorm(10), b = rnorm(10), 
+  c = rnorm(10), d = rnorm(10)
+)
+```
+
+--
+
+**Example**: What do you think this code does?
+
+
+```r
+fake_data$z_a = (fake_data$a - mean(fake_data$a))/sd(fake_data$a)
+
+fake_data$z_b = (fake_data$b - mean(fake_data$b))/sd(fake_data$b)
+
+fake_data$z_c = (fake_data$c - mean(fake_data$c))/sd(fake_data$c)
+
+fake_data$z_d = (fake_data$d - mean(fake_data$d))/sd(fake_data$d)
+```
+
+---
+
+# When should you write a function?
+
+
+```r
+fake_data$z_a = (fake_data$a - mean(fake_data$a))/sd(fake_data$a)
+```
+
+This *looks like* the formula for a *z*-score, `\(z=(x-\bar{x})/s\)`. 
+
+- But imagine having to calculate *z*-scores for *hundreds* of observations!
+
+--
+
+Luckily, we can write a **function**:
+
+```r
+z_score = function(data){
+  z = (data - mean(data))/sd(data)
+  
+  return(z)
+}
+```
+
+--
+
+
+```r
+# Check function
+head(z_score(data = fake_data$a))
+```
+
+```
+## [1] -1.0126886  2.0430416 -0.4892093 -0.4524942 -1.5294238  0.1947899
+```
+
+---
+
+# Writing Functions
+
+
+```r
+my_function = function(input1, imput2 = 2, ...){
+  ...
+  x = &lt;valid R code&gt;
+  ...
+  return(x)
+}
+```
+
+*Inputs*:
+
+- the **arguments**: `input1`, `input2`
+- `input2` is *optional*, and has the default value of 2 unless otherwise specified
+
+*Output*:
+
+- The value in `return()`
+- If `return()` isn't present, the function will return output from the last line by default. 
+
+---
+
+# Example Function
+
+The *factorial* function is defined as `\(n!=n\times(n-1)\times\cdots\times1\)`. 
+
+We can write a function for this, called `factorial()`, where the *only* argument is `n`:
+
+
+```r
+n_factorial = n_factorial = function(n){ # input: n
+# Calculate n factorial
+n_fact = prod(1:n) # take the product of all integers from 1 to n
+
+return(n_fact) # output: n!
+}
+```
+
+--
+
+**Test**: 
+
+
+```r
+n_factorial(4)
+```
+
+```
+## [1] 24
+```
+
+---
+
+# Another Example Function
+
+Now let's write a function that gives a **plot** as output. 
+
+- We will require *at least* two variables from `data`, and set *any additional variables* to `NULL` by default. 
+
+
+```r
+my_plot = function(data, var1, var2, var3 = NULL){
+  p = ggplot(data, aes(x = var1, y = var2)) + 
+    geom_point(aes(color = var3), size = 1.5) + 
+    geom_smooth(se = FALSE) +# Remove CI bands
+    theme_bw()
+  
+  return(p)
+}
+```
+
+---
+
+# Another Example Function
+
+**Test 1**:
+
+
+```r
+my_plot(data = CIACountries,
+        var1 = CIACountries$educ, var2 = CIACountries$gdp)
+```
+
+&lt;img src="05-Multiple_Tables_files/figure-html/unnamed-chunk-42-1.png" width="50%" /&gt;
+
+---
+
+# Another Example Function
+
+**Test 2**:
+
+
+```r
+my_plot(data = CIACountries,
+        var1 = CIACountries$educ, var2 = CIACountries$gdp, 
+        var3 = CIACountries$net_users)
+```
+
+&lt;img src="05-Multiple_Tables_files/figure-html/unnamed-chunk-43-1.png" width="50%" /&gt;
+
+---
+
+# Practice
+
+We can add additional arguments to `my_plot()` so that we can add appropriate **labels**: 
+
+
+```r
+my_plot = function(data, var1, var2, var3 = NULL, 
+*                  lab_x = NULL, lab_y = NULL, lab_col = NULL){
+  p = ggplot(data, aes(x = var1, y = var2)) + 
+    geom_point(aes(color = var3), size = 1.5) + 
+    geom_smooth(se = FALSE) + # Remove CI bands
+    theme_bw() +
+*   labs(x = lab_x, y = lab_y, color = lab_col)
+  
+  return(p)
+}
+```
+
+
+```r
+my_plot(data = CIACountries,
+        var1 = CIACountries$educ, var2 = CIACountries$gdp, 
+        var3 = CIACountries$net_users, 
+        lab_x = "Education spending (% of GDP)", 
+        lab_y = "GDP per capita", 
+        lab_col = "% Internet users")
+```
+
+---
+
+# Practice
+
+Write a function that performs the following calculation with inputs `x`, `y`, `z`: `$$\log(6x^{4})\sqrt{y}+sin(z^{2})$$`
+- **Hint**: R has *built-in functions* `log()`, `sqrt()`, and `sin()`. 
+
+
+
+
+
+
+
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"countIncrementalSlides": false,
+"highlightLines": true
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
