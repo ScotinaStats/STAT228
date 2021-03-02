@@ -255,18 +255,6 @@ But... $329174\neq336776$! This means that there were *some* destination airport
 
 # `left_join()`
 
-```{r}
-flights %>%
-  inner_join(airports, by = c("dest" = "faa")) %>%
-  nrow()
-```
-
-This is not the same as the number of rows in the original `flights` table! This means that there were *some* destination airports in `flights` that didn't actually appear in `airports`
-
----
-
-# `left_join()`
-
 We use `left_join()` when we want to include **all** rows in one table (the "left" table), and *only* rows in the other table with a matching "key" variable. 
 
 - `right_join()` works similarly, just in the other direction. 
