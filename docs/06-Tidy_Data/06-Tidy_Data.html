@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>STAT 228: Introduction to Data Science</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Anthony Scotina" />
+    <script src="libs/header-attrs-2.6/header-attrs.js"></script>
+    <link rel="stylesheet" href="my-theme.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# STAT 228: Introduction to Data Science
+## Cleaning and Reshaping Data
+### Anthony Scotina
+
+---
+
+
+
+
+
+
+
+
+&lt;!--
+pagedown::chrome_print("~/Dropbox/Teaching/03-Simmons Courses/MATH228-Introduction to Data Science/Lecture Slides/04-Tidy_Data/04-Tidy_Data.html")
+--&gt;
+
+class: center, middle
+
+# Tidy Data
+
+---
+
+# Needed Packages
+
+
+```r
+library(tidyverse)
+library(mdsr)
+library(lubridate)
+library(fivethirtyeight)
+library(nycflights13)
+```
+
+---
+
+# `bush_approval` data
+
+Download the `bush_approval` data from Moodle, and import it into R. 
+
+
+
+
+The `bush_approval` data frame consists of approval ratings (out of 100%) of former US President George W. Bush. 
+
+- `date`: date of poll
+- `Approve`: overall percent who approve of President Bush
+- `Disapprove`: overall percent who disapprove of President Bush
+- `Republican`: percent approval among Republican voters
+- `Independent`: percent approval among Independent voters
+- `Democrat`: percent approval among Democrat voters
+- `Pres.Party`: President Bush's political party
+
+--
+
+Simplify the data a bit:
+
+```r
+bush_approval = bush_approval %&gt;%
+  select(date, Republican, Independent, Democrat)
+```
+
+---
+
+# Wide Data
+
+
+```r
+head(bush_approval, 5)
+```
+
+```
+## # A tibble: 5 x 4
+##   date       Republican Independent Democrat
+##   &lt;date&gt;          &lt;dbl&gt;       &lt;dbl&gt;    &lt;dbl&gt;
+## 1 2009-01-13         75           6       28
+## 2 2008-12-16         67           7       25
+## 3 2008-12-09         72           9       26
+## 4 2008-11-18         66           6       28
+## 5 2008-11-11         63           5       21
+```
+
+The `bush_approval` data are currently in **wide format**. 
+
+- Each party's approval of Bush is located in a separate column. 
+
+--
+
+If *visual inspection* is the primary analytical technique, this format can be convenient. 
+
+- However, it can be more difficult to implement anything other than *visual inspection*. 
+
+---
+
+# Tidy Data
+
+As is, the `bush_approval` data are not **tidy**!
+
+--
+
+&lt;img src="tidy_data.png" width="2000" /&gt;
+
+From [Wickham (2014)](https://vita.had.co.nz/papers/tidy-data.pdf)
+  
+1. Each variable forms a column.
+
+2. Each observation forms a row.
+
+3. Each type of observational unit forms a table.
+
+---
+
+# Tidy Data
+
+Why is `bush_approval` *not* tidy?
+
+
+```r
+head(bush_approval, 5)
+```
+
+```
+# A tibble: 5 x 4
+  date       Republican Independent Democrat
+  &lt;date&gt;          &lt;dbl&gt;       &lt;dbl&gt;    &lt;dbl&gt;
+1 2009-01-13         75           6       28
+2 2008-12-16         67           7       25
+3 2008-12-09         72           9       26
+4 2008-11-18         66           6       28
+5 2008-11-11         63           5       21
+```
+
+What are the **three unique pieces of information** in this data frame?
+
+--
+
+1. Date
+2. Approval Rating
+3. Political Party
+
+--
+
+But... there are more than three columns!
+
+---
+
+# Tidy Data
+
+We want to end up with this:
+
+
+
+```r
+bush_tidy
+```
+
+```
+# A tibble: 849 x 3
+   date       Party      Approval
+   &lt;date&gt;     &lt;chr&gt;         &lt;dbl&gt;
+ 1 2009-01-13 Republican       75
+ 2 2008-12-16 Republican       67
+ 3 2008-12-09 Republican       72
+ 4 2008-11-18 Republican       66
+ 5 2008-11-11 Republican       63
+ 6 2008-11-04 Republican       61
+ 7 2008-10-28 Republican       63
+ 8 2008-10-14 Republican       57
+ 9 2008-10-07 Republican       55
+10 2008-09-29 Republican       64
+# … with 839 more rows
+```
+
+---
+
+# How do we convert to "tidy" data?
+
+.center[
+&lt;img src="tidyr_hex.png" width="40%" /&gt;
+]
+
+---
+
+# `pivot_longer()`
+
+We convert a data frame to "tidy" (long format) by using the `pivot_longer()` function from the `tidyr` package.
+
+- The `tidyr` package loads with the `tidyverse`. 
+
+
+```r
+head(bush_approval, 5)
+```
+
+```
+## # A tibble: 5 x 4
+##   date       Republican Independent Democrat
+##   &lt;date&gt;          &lt;dbl&gt;       &lt;dbl&gt;    &lt;dbl&gt;
+## 1 2009-01-13         75           6       28
+## 2 2008-12-16         67           7       25
+## 3 2008-12-09         72           9       26
+## 4 2008-11-18         66           6       28
+## 5 2008-11-11         63           5       21
+```
+
+
+```r
+bush_tidy = bush_approval %&gt;%
+  pivot_longer(names_to = "Party", 
+               values_to = "Approval", 
+               cols = -date)
+```
+
+---
+
+# `pivot_longer()`
+
+
+```r
+bush_tidy = bush_approval %&gt;%
+  pivot_longer(names_to = "Party", 
+               values_to = "Approval", 
+               cols = -date)
+bush_tidy
+```
+
+```
+# A tibble: 849 x 3
+   date       Party       Approval
+   &lt;date&gt;     &lt;chr&gt;          &lt;dbl&gt;
+ 1 2009-01-13 Republican        75
+ 2 2009-01-13 Independent        6
+ 3 2009-01-13 Democrat          28
+ 4 2008-12-16 Republican        67
+ 5 2008-12-16 Independent        7
+ 6 2008-12-16 Democrat          25
+ 7 2008-12-09 Republican        72
+ 8 2008-12-09 Independent        9
+ 9 2008-12-09 Democrat          26
+10 2008-11-18 Republican        66
+# … with 839 more rows
+```
+
+---
+
+# `pivot_longer()`
+
+The `pivot_longer()` function takes the following *arguments*:
+
+- `names_to` is the name of the column/variable in the new "tidy" frame that contains the column names of the original data frame that you want to tidy.
+    - When we set `names_to = Party`, the `Party` column in `bush_tidy` contains the original Party names from `bush_approval`. 
+
+--
+
+- `values_to` is the name of the column/variable in the "tidy" frame that contains the rows and columns of values in the original data frame you want to tidy. 
+    - When we set `values_to = Approval`, the `Approval` column in `bush_tidy` contains all of the approval ratings from `bush_approval`. 
+
+--
+
+- The third argument, `cols`, is the column(s) you either want to or don’t want to tidy. 
+    - The `date` variable was already tidy, so we didn't need to further modify it. 
+    
+---
+
+# Benefits of Tidy Data
+
+While we sacrificed our ability to see the data *all at once*, it is much more straightforward to use *data visualization* and *data wrangling* techniques with **tidy data**. 
+
+
+```r
+ggplot(data = bush_tidy, aes(x = date, y = Approval, color = Party)) + 
+  geom_line(size = 1.5) + 
+  labs(x = "", title = "Approval Rate for George W. Bush", subtitle = "by party")
+```
+
+&lt;img src="06-Tidy_Data_files/figure-html/unnamed-chunk-15-1.png" width="40%" /&gt;
+
+---
+
+# Going from tidy to wide format
+
+If you have a *tidy* dataset but want to transform it to *wide format*, use the `pivot_wider()` function:
+
+
+```r
+bush_wide = bush_tidy %&gt;%
+  pivot_wider(names_from = "Party", 
+              values_from = "Approval")
+head(bush_wide, 5)
+```
+
+```
+## # A tibble: 5 x 4
+##   date       Republican Independent Democrat
+##   &lt;date&gt;          &lt;dbl&gt;       &lt;dbl&gt;    &lt;dbl&gt;
+## 1 2009-01-13         75           6       28
+## 2 2008-12-16         67           7       25
+## 3 2008-12-09         72           9       26
+## 4 2008-11-18         66           6       28
+## 5 2008-11-11         63           5       21
+```
+
+The `pivot_wider()` syntax is nearly *identical* to `pivot_longer()`, except with the `names_from` and `values_from` arguments. 
+
+---
+
+# Example
+
+Let's look at the `drinks` data frame from the `fivethirtyeight` package. 
+
+
+```r
+library(fivethirtyeight)
+drinks
+```
+
+```
+# A tibble: 193 x 5
+   country      beer_servings spirit_servings wine_servings total_litres_of_pur…
+   &lt;chr&gt;                &lt;int&gt;           &lt;int&gt;         &lt;int&gt;                &lt;dbl&gt;
+ 1 Afghanistan              0               0             0                  0  
+ 2 Albania                 89             132            54                  4.9
+ 3 Algeria                 25               0            14                  0.7
+ 4 Andorra                245             138           312                 12.4
+ 5 Angola                 217              57            45                  5.9
+ 6 Antigua &amp; B…           102             128            45                  4.9
+ 7 Argentina              193              25           221                  8.3
+ 8 Armenia                 21             179            11                  3.8
+ 9 Australia              261              72           212                 10.4
+10 Austria                279              75           191                  9.7
+# … with 183 more rows
+```
+
+---
+
+# Example
+
+&lt;img src="fivethirtyeight_drinks.png" width="50%" /&gt;
+
+---
+
+# Example
+
+Run the following code to simplify the data frame a bit:
+
+
+```r
+drinks_smaller = drinks %&gt;%
+  filter(country %in% c("USA", "France", "China", "Italy", "Ireland")) %&gt;%
+  select(-total_litres_of_pure_alcohol)
+View(drinks_smaller)
+```
+
+
+```
+# A tibble: 5 x 4
+  country beer_servings spirit_servings wine_servings
+  &lt;chr&gt;           &lt;int&gt;           &lt;int&gt;         &lt;int&gt;
+1 China              79             192             8
+2 France            127             151           370
+3 Ireland           313             118           165
+4 Italy              85              42           237
+5 USA               249             158            84
+```
+
+---
+
+# Practice
+
+Convert `drinks_smaller` to a **tidy** data frame. 
+
+**Starting Point**
+
+```r
+drinks_smaller
+```
+
+```
+# A tibble: 5 x 4
+  country beer_servings spirit_servings wine_servings
+  &lt;chr&gt;           &lt;int&gt;           &lt;int&gt;         &lt;int&gt;
+1 China              79             192             8
+2 France            127             151           370
+3 Ireland           313             118           165
+4 Italy              85              42           237
+5 USA               249             158            84
+```
+
+---
+
+# Practice
+
+Convert `drinks_smaller` to a **tidy** data frame. 
+
+**Ending Point**
+
+
+```r
+drinks_tidy
+```
+
+```
+# A tibble: 15 x 3
+   country type            servings
+   &lt;chr&gt;   &lt;chr&gt;              &lt;int&gt;
+ 1 China   beer_servings         79
+ 2 France  beer_servings        127
+ 3 Ireland beer_servings        313
+ 4 Italy   beer_servings         85
+ 5 USA     beer_servings        249
+ 6 China   spirit_servings      192
+ 7 France  spirit_servings      151
+ 8 Ireland spirit_servings      118
+ 9 Italy   spirit_servings       42
+10 USA     spirit_servings      158
+11 China   wine_servings          8
+12 France  wine_servings        370
+13 Ireland wine_servings        165
+14 Italy   wine_servings        237
+15 USA     wine_servings         84
+```
+
+---
+
+class: center, middle
+
+# Data Cleaning: Tips and Tricks
+
+## (Anthony's Favorite Things)
+
+---
+
+# Counting Observations per group
+
+
+```r
+video_games &lt;- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-07-30/video_games.csv")
+```
+
+- `number`:	Game number
+- `game`: Game Title
+- `release_date`:	Release date
+- `price`: US Dollars + Cents
+- `owners`: Estimated number of people owning this game
+- `developer`: Group that developed the game
+- `publisher`: Group that published the game
+- `average_playtime`: Average playtime in minutes
+- `median_playtime`: Median playtime in minutes
+- `metascore`: Metascore rating
+
+**Question**: How would you count the number of games *per publisher*, and then *arrange* by count?
+
+---
+
+# Counting Observations per group
+
+Using some of `dplyr`'s data wrangling functions, we can do this in several lines:
+
+
+```r
+video_games %&gt;%
+  group_by(publisher) %&gt;%
+  summarize(N_games = n()) %&gt;%
+  arrange(desc(N_games))
+```
+
+--
+
+This pipeline:
+
+1. **groups by** `publisher`, 
+
+2. **summarizes** the data by simply counting the *number of rows* (`n()`) per publisher, and 
+
+3. **arranges in descending order** by the newly-created `N_games`. 
+
+---
+
+# `count()`
+
+The `count()` function is one of my **favorites**!
+
+- `count()` simply *count* the number of observations **by group**. 
+
+
+```r
+video_games %&gt;%
+  count(publisher)
+```
+
+- This returns a table with the groups and the number of observations per group. 
+
+---
+
+# `count()`
+
+If you want to `arrange` by `n` (the number of observations per group), you *could* use arrange...
+
+
+```r
+video_games %&gt;%
+  count(publisher) %&gt;%
+  arrange(desc(n))
+```
+
+---
+
+# `count()`
+
+You *could also* just use the `sort = TRUE` option in `count()` to sort in **descending order**:
+
+
+```r
+video_games %&gt;%
+  count(publisher, sort = TRUE)
+```
+
+```
+## # A tibble: 13,954 x 2
+##    publisher               n
+##    &lt;chr&gt;               &lt;int&gt;
+##  1 Big Fish Games        284
+##  2 SEGA                  141
+##  3 Strategy First        129
+##  4 Ubisoft               123
+##  5 Square Enix            95
+##  6 &lt;NA&gt;                   95
+##  7 Sekai Project          94
+##  8 Choice of Games        92
+##  9 Dagestan Technology    89
+## 10 1C Entertainment       85
+## # … with 13,944 more rows
+```
+
+---
+
+# Lumping Factors
+
+&lt;strike&gt;Let's make a **barplot** of *games per publisher*:&lt;/strike&gt;
+
+**Caution**: Don't actually make a barplot. There are 13,954 *unique publishers* (as seen in the previous `count()` table). 
+
+
+```r
+ggplot(video_games, aes(x = publisher)) + 
+  geom_bar() + 
+  coord_flip()
+```
+
+---
+
+# `fct_lump()`
+
+The `fct_lump()` function is one of my **favorites**!
+
+- `fct_lump()` is a `forcats` package function (part of the `tidyverse`) that **lumps together** the least common *factor* levels into a level named `"Other"`. 
+
+
+```r
+video_games %&gt;%
+* mutate(publisher_lump = fct_lump(publisher, n = 5)) %&gt;%
+  count(publisher_lump, sort = TRUE)
+```
+
+```
+## # A tibble: 7 x 2
+##   publisher_lump     n
+##   &lt;fct&gt;          &lt;int&gt;
+## 1 Other          25821
+## 2 Big Fish Games   284
+## 3 SEGA             141
+## 4 Strategy First   129
+## 5 Ubisoft          123
+## 6 Square Enix       95
+## 7 &lt;NA&gt;              95
+```
+
+---
+
+# `fct_lump()`
+
+**Now** we can make a barplot without R crashing!
+
+
+```r
+video_games %&gt;%
+  mutate(publisher_lump = fct_lump(publisher, n = 5)) %&gt;% 
+  ggplot(aes(x = publisher_lump)) + 
+  geom_bar() + 
+  labs(x = "Publisher", y = "Count") + 
+  coord_flip()
+```
+
+&lt;img src="06-Tidy_Data_files/figure-html/unnamed-chunk-31-1.png" width="40%" /&gt;
+
+---
+
+# `fct_lump()`
+
+**Note**: In this case, I would probably make the barplot *without* the `Other` category in this context. 
+
+- But using `fct_lump()` makes it a bit easier to `filter()` afterwards:
+
+
+```r
+video_games %&gt;%
+  mutate(publisher_lump = fct_lump(publisher, n = 5)) %&gt;% 
+* filter(publisher_lump != "Other") %&gt;%
+  ggplot(aes(x = publisher_lump)) + 
+  geom_bar() + 
+  labs(x = "Publisher", y = "Count") + 
+  coord_flip()
+```
+
+---
+
+# `fct_reorder()` with `geom_col()`
+
+Let's stay with `forcats` for a bit. 
+
+It is usually preferable to arrange a *barplot* (or *boxplots*/*stripplots*) so that the bars are in **ascending** or **descending order** based on the *y*-axis variable. 
+
+- Using `fct_reorder()` within `ggplot()` (with `geom_col()`) can get us there!
+
+
+```r
+video_games %&gt;%
+  mutate(publisher_lump = fct_lump(publisher, n = 5)) %&gt;% 
+  filter(publisher_lump != "Other") %&gt;%
+  count(publisher_lump) %&gt;% 
+  ggplot(aes(x = fct_reorder(publisher_lump, n), y = n)) + 
+  geom_col() + 
+  labs(x = "Publisher", y = "Count") + 
+  coord_flip()
+```
+
+---
+
+# `fct_reorder()` with `geom_col()`
+
+You can also use `fct_reorder()` with a *summary statistic*, so that the bars in `geom_col()` are arranged based on the statistic (instead of *Count*):
+
+
+```r
+video_games %&gt;%
+  mutate(publisher_lump = fct_lump(publisher, n = 5)) %&gt;% 
+  filter(publisher_lump != "Other") %&gt;%
+* group_by(publisher_lump) %&gt;%
+* summarize(mean_price = mean(price, na.rm = TRUE)) %&gt;%
+  ggplot(aes(x = fct_reorder(publisher_lump, mean_price), y = mean_price)) + 
+  geom_col() + 
+  labs(x = "Publisher", y = "Average Price (in $, by publisher)") + 
+  coord_flip()
+```
+
+---
+
+# `separate()`
+
+`separate()` is a `tidyr` function that can be used if you convert a *character* column into multiple other character columns. 
+
+We'll use the `nyc_restaurants` data from *TidyTuesday* (more on this dataset [HERE](https://github.com/rfordatascience/tidytuesday/tree/master/data/2018/2018-12-11)):
+
+
+```r
+nyc_restaurants &lt;- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-12-11/nyc_restaurants.csv")
+```
+
+
+```r
+View(nyc_restaurants)
+```
+
+--
+
+One variable, `inspection_type`, is defined as follows:
+
+&gt; A combination of the inspection program and the type of inspection performed; See Data Dictionary for full list of expected values
+
+---
+
+# `separate()`
+
+There are **a lot** of different `inspection_type` categories:
+
+
+```r
+nyc_restaurants %&gt;%
+  count(inspection_type, sort = TRUE) 
+```
+
+```
+## # A tibble: 33 x 2
+##    inspection_type                                        n
+##    &lt;chr&gt;                                              &lt;int&gt;
+##  1 Cycle Inspection / Initial Inspection             171657
+##  2 Cycle Inspection / Re-inspection                   73207
+##  3 Pre-permit (Operational) / Initial Inspection      20896
+##  4 Pre-permit (Operational) / Re-inspection            9260
+##  5 Administrative Miscellaneous / Initial Inspection   5513
+##  6 Cycle Inspection / Reopening Inspection             3426
+##  7 Pre-permit (Non-operational) / Initial Inspection   2936
+##  8 Smoke-Free Air Act / Initial Inspection             2530
+##  9 Administrative Miscellaneous / Re-inspection        1765
+## 10 Trans Fat / Initial Inspection                      1747
+## # … with 23 more rows
+```
+
+---
+
+# `separate()`
+
+This means that making a useful visualization with all of these categories could be challenging!
+
+
+```r
+nyc_restaurants %&gt;%
+  count(inspection_type, sort = TRUE) %&gt;%
+  ggplot(aes(x = fct_reorder(inspection_type, n), y = n)) + 
+  geom_col() + 
+  labs(x = "", y = "Count") +
+  coord_flip() 
+```
+
+---
+
+# `separate()`
+
+Let's take `inspection_type` and `separate()` it into two columns: `inspection_program` and `inspection_type`:
+
+
+```r
+nyc_restaurants_sep = nyc_restaurants %&gt;%
+  separate(inspection_type, 
+           into = c("inspection_program", "inspection_type"), 
+           sep = "/")
+```
+
+--
+
+**Notes**
+
+- The `into` argument gives the names of the **new columns** into which we are *separating* the original column. 
+
+- The `sep` argument is the character that serves as the *separator* between columns. 
+    - In the original dataset, the `inspection_type` variable includes the different pieces of information separated by a `"/"`.
+
+---
+
+# `separate()`
+
+
+```r
+nyc_restaurants_sep %&gt;%
+  count(inspection_program) %&gt;%
+  na.omit() %&gt;% # REMOVES NA CATEGORY
+  ggplot(aes(x = fct_reorder(inspection_program, n), y = n)) + 
+  geom_col(aes(fill = inspection_program), color = "black") + 
+  labs(x = "", y = "Count") + 
+  coord_flip() + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+---
+
+# `separate()`
+
+Another way to **reorder** categories by frequency is by `fct_infreq()`. 
+- With this we'll use `geom_bar()` instead of `geom_col()`, since we aren't first creating a *summary table*. 
+
+
+```r
+nyc_restaurants_sep %&gt;%
+  filter(!is.na(inspection_program)) %&gt;%
+* ggplot(aes(x = fct_infreq(inspection_program))) +
+  geom_bar(aes(fill = inspection_type), color = "black") + 
+  labs(x = "", y = "Count", fill = "Inspection Type") + 
+  coord_flip() + 
+  theme_bw()
+```
+
+---
+
+# `scales::comma`
+
+Many visualizations will have an axis that uses a *continuous numerical* scale. By default, R does not add commas to large numbers. 
+
+- We can fix this by using `label = scales::comma` within `scale_x_continuous()` or `scale_y_continuous()`:
+
+
+```r
+nyc_restaurants_sep %&gt;%
+  filter(!is.na(inspection_program)) %&gt;%
+* ggplot(aes(x = fct_infreq(inspection_program))) +
+  geom_bar(aes(fill = inspection_type), color = "black") + 
+  labs(x = "", y = "Count", fill = "Inspection Type") + 
+  coord_flip() + 
+  theme_bw() + 
+  scale_y_continuous(label = scales::comma)
+```
+
+---
+
+# Filtering Using Text Expressions
+
+The `violation_description` column contains a **plain text** description of each unique violation. 
+
+- Let's see which **boroughs** have restaurants with the most *roach-related* violations!
+
+--
+
+We can use one of many `stringr` package (part of the `tidyverse`) functions to extract information about a particular *text pattern* from a character vector. 
+
+In particular, `str_detect()` detects the *presence* of a pattern within a string of text. 
+
+
+```r
+?str_detect
+```
+
+---
+
+# Filtering Using Text Expressions
+
+We will use `str_detect()` in combination with `mutate()` to create a `logical` variable for whether or not each restaurant had a roach-related violation:
+
+- `str_detect()` returns `TRUE` or `FALSE` depending on whether the given `pattern` appears within the `string`. 
+
+
+```r
+nyc_restaurants = nyc_restaurants %&gt;%
+  mutate(roach_violation =
+    str_detect(string = violation_description, 
+               pattern = "roach"))
+```
+
+---
+
+# Roach Violations in NY
+
+
+```r
+nyc_restaurants %&gt;%
+  filter(roach_violation == TRUE) %&gt;%
+  ggplot(aes(x = fct_infreq(boro))) + 
+  geom_bar() + 
+  labs(x = "", y = "Count", 
+       title = "Which NYC Boroughs have the most Roach-related Violations?") +
+  coord_flip() + 
+  theme_bw() 
+```
+
+&lt;img src="06-Tidy_Data_files/figure-html/unnamed-chunk-45-1.png" width="40%" /&gt;
+
+---
+
+# `case_when()`
+
+Are there more **resort** hotel reservations (compared to **city** hotel reservations) during the *summer* months?
+
+This dataset contains open data on **hotel booking demand** via [TidyTuesday](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-02-11/readme.md). 
+
+
+```r
+hotels &lt;- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-11/hotels.csv')
+```
+
+--
+
+**Two variables of interest**:
+
+- `hotel`: `city` or `resort`
+- `arrival_date_month`: the *month* (in words) of arrival
+
+---
+
+# `case_when()`
+
+From `?case_when`:
+
+&gt; This function allows you to vectorise multiple `if_else()` statements. 
+
+--
+
+Let's create a new `season` variable:
+
+- If `arrival_date_month %in% c("December", "January", "February")`, then `season = "Winter"`
+
+- If `arrival_date_month %in% c("March", "April", "May")`, then `season = "Spring"`
+
+- If `arrival_date_month %in% c("June", "July", "August")`, then `season = "Summer"`
+
+- If `arrival_date_month %in% c("September", "October", "November")`, then `season = "Fall"`
+
+---
+
+# `case_when()`
+
+From `?case_when`:
+
+&gt; This function allows you to vectorise multiple `if_else()` statements. 
+
+The general syntax within a `case_when()` statement is: 
+
+.center[
+case_when(`CONDITION1 ~ CATEGORY NAME IF CONDITION1 IS TRUE`, 
+`CONDITION1 ~ CATEGORY NAME IF CONDITION1 IS TRUE`
+]
+
+```r
+mutate(new_variable = 
+         case_when(`CONDITION1 ~ CATEGORY NAME IF CONDITION1 IS TRUE`, 
+                   `CONDITION2 ~ CATEGORY NAME IF CONDITION2 IS TRUE`, 
+                   ... )
+       )
+```
+
+---
+
+# `case_when()`
+
+From `?case_when`:
+
+&gt; This function allows you to vectorise multiple `if_else()` statements. 
+
+Let's create a new `season` variable:
+
+
+```r
+hotels = hotels %&gt;%
+  mutate(season = 
+           case_when(arrival_date_month %in% c("December", "January", "February") ~ "Winter", 
+                     arrival_date_month %in% c("March", "April", "May") ~ "Spring", 
+                     arrival_date_month %in% c("June", "July", "August") ~ "Summer", 
+                     arrival_date_month %in% c("September", "October", "November") ~ "Fall"))
+```
+
+---
+
+# Hotel Reservations (by season)
+
+Now let's make a bar graph using the new `season` variable!
+
+
+```r
+hotels %&gt;%
+  ggplot(aes(x = season, fill = hotel)) + 
+  geom_bar(position = "dodge") + 
+  labs(x = "", y = "", fill = "",
+       title = "Hotel Reservations (by season)") + 
+  scale_y_continuous(labels = scales::comma) +
+  coord_flip() +
+  theme_minimal()
+```
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"countIncrementalSlides": false,
+"highlightLines": true
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
