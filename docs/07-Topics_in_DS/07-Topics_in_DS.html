@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>STAT 228: Introduction to Data Science</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Anthony Scotina" />
+    <script src="libs/header-attrs-2.6/header-attrs.js"></script>
+    <script src="libs/htmlwidgets-1.5.1/htmlwidgets.js"></script>
+    <script src="libs/plotly-binding-4.9.2.1/plotly.js"></script>
+    <script src="libs/typedarray-0.1/typedarray.min.js"></script>
+    <script src="libs/jquery-1.11.3/jquery.min.js"></script>
+    <link href="libs/crosstalk-1.1.0.1/css/crosstalk.css" rel="stylesheet" />
+    <script src="libs/crosstalk-1.1.0.1/js/crosstalk.min.js"></script>
+    <link href="libs/plotly-htmlwidgets-css-1.52.2/plotly-htmlwidgets.css" rel="stylesheet" />
+    <script src="libs/plotly-main-1.52.2/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="my-theme.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# STAT 228: Introduction to Data Science
+## Topics in Data Science
+### Anthony Scotina
+
+---
+
+
+
+
+
+
+
+
+&lt;!--
+pagedown::chrome_print("~/Dropbox/Teaching/03-Simmons Courses/MATH228-Introduction to Data Science/Lecture Slides/06-Topics_in_DS/06-Topics_in_DS.html")
+--&gt;
+
+# Needed Packages
+
+
+```r
+library(tidyverse)
+library(mdsr)
+library(ngram) 
+library(ggwordcloud)
+library(tidytext)
+```
+
+---
+
+class: center, middle, frame
+
+# Working with Text
+
+---
+
+# Why text data?
+
+So far, we have been working almost exclusively with **numerical**, **categorical**, and **character** data. 
+
+--
+
+
+```r
+diamonds %&gt;%
+  select(carat, cut, color, price) %&gt;%
+  head(4)
+```
+
+```
+## # A tibble: 4 x 4
+##   carat cut     color price
+##   &lt;dbl&gt; &lt;ord&gt;   &lt;ord&gt; &lt;int&gt;
+## 1 0.23  Ideal   E       326
+## 2 0.21  Premium E       326
+## 3 0.23  Good    E       327
+## 4 0.290 Premium I       334
+```
+
+--
+
+However, much of the data in the world today are **text heavy**. 
+
+- Acquiring a basic understanding of working with *text data* is **crucial**!
+
+---
+
+# Regular Experessions using Friends
+
+We'll look at transcript data from the TV show, **Friends**. 
+
+- TidyTuesday link: [HERE](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-09-08/readme.md)
+
+- Also available via the `friends` R package. 
+
+.center[
+![](https://media.giphy.com/media/jtirFYtVwG5a0o1t9o/giphy.gif)
+
+]
+
+
+---
+
+# `friends` data
+
+
+```r
+friends &lt;- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-08/friends.csv')
+nrow(friends)
+```
+
+```
+## [1] 67373
+```
+
+
+```r
+set.seed(228)
+friends %&gt;% sample_n(5)
+```
+
+```
+## # A tibble: 5 x 6
+##   text                                  speaker   season episode scene utterance
+##   &lt;chr&gt;                                 &lt;chr&gt;      &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;
+## 1 Tonight, on a very special Blossom.   Chandler…      1       9     7         2
+## 2 Yeah well, that's 'cause Monica put … Phoebe B…      5      18     8         9
+## 3 I love you goddesses. I don't ever w… Phoebe B…      2      19    13         7
+## 4 Cache? Jaunty?                        Monica G…      2      19     2        10
+## 5 Really? Just casually strewn about i… Rachel G…      1       6     8        26
+```
+
+---
+
+# Text Mining
+
+An aim of analyzing text data is to *quantify the ideas embedded in text*. 
+
+- How many times does **Rachel Green** speak?
+
+- How many times do other characters *mention* **Ross Geller**?
+
+- Which character says the *most words*?
+
+Unfortunately, R doesn't *just know this*. But we can answer this question by counting *text patterns*. 
+
+--
+
+
+```r
+# How many TOTAL lines does Rachel Green have?
+friends %&gt;%
+  filter(speaker == "Rachel Green") %&gt;%
+  nrow()
+```
+
+```
+## [1] 9312
+```
+
+---
+
+# `str_()` 
+
+The `stringr` package's `str_...()` functions count text patterns within character vectors. 
+
+For instance, let's find how many times **Ross** was mentioned:
+
+```r
+str_which(friends$text, pattern = "Ross")
+str_subset(friends$text, pattern = "Ross")
+```
+
+--
+
+**Notes**:
+
+- The first argument in `str_which()` and `str_subset()` is the **character vector** in which you want to find the pattern, and the second argument is the pattern itself. 
+    - Like finding a "needle in a haystack," except R does all the work
+
+--
+
+- `str_which()` and `str_subset()` take *identical arguments*. 
+    - `str_which()` returns **indices** with the text pattern, while `str_subset()` returns the **text** that contained the pattern. 
+    
+---
+
+# `str_detect()` 
+
+The `str_detect()` function uses the *same syntax* as `str_which()` and `str_subset()`, except it returns a **logical vector** that is *the same length as the character vector* (i.e., the haystack):
+
+
+```r
+str_detect(friends$text, pattern = "Ross")
+```
+
+--
+
+We can use this to count how many times **Ross** was mentioned:
+
+
+```r
+sum(str_detect(friends$text, pattern = "Ross"))
+```
+
+```
+## [1] 3106
+```
+
+---
+
+# `str_detect()` 
+
+**Who mentioned Ross the most?**
+
+
+```r
+friends %&gt;%
+  group_by(speaker) %&gt;%
+  summarize(total_ross = sum(str_detect(text, pattern = "Ross"))) %&gt;%
+  slice_max(order_by = total_ross, n = 10) 
+```
+
+```
+## # A tibble: 11 x 2
+##    speaker          total_ross
+##    &lt;chr&gt;                 &lt;int&gt;
+##  1 Scene Directions       1426
+##  2 Rachel Green            511
+##  3 Joey Tribbiani          304
+##  4 Monica Geller           211
+##  5 Phoebe Buffay           182
+##  6 Chandler Bing           163
+##  7 Ross Geller              82
+##  8 Emily Waltham            20
+##  9 Carol Willick            14
+## 10 Charlie Wheeler          14
+## 11 Paul Stevens             14
+```
+
+---
+
+# `str_detect()` 
+
+**Who mentioned Ross the most?**
+
+
+```r
+friends %&gt;%
+  group_by(speaker) %&gt;%
+  summarize(total_ross = sum(str_detect(text, pattern = "Ross"))) %&gt;%
+  slice_max(order_by = total_ross, n = 10) %&gt;%
+  ggplot(aes(x = fct_reorder(speaker, total_ross), y = total_ross)) + 
+  geom_col(fill = "dodgerblue", alpha = 0.4) + 
+  labs(x = "", y = "Number of lines that mentioned 'Ross'") +
+  coord_flip() + 
+  theme_minimal()
+```
+
+![](07-Topics_in_DS_files/figure-html/unnamed-chunk-12-1.png)&lt;!-- --&gt;
+
+---
+
+# `str_detect()` 
+
+**Who started the most lines with "Ross"?**
+
+- (With a **regular expression**, `^`)
+
+
+```r
+friends %&gt;%
+  group_by(speaker) %&gt;%
+* summarize(total_ross = sum(str_detect(text, pattern = "^Ross"))) %&gt;%
+  slice_max(order_by = total_ross, n = 10) %&gt;%
+  ggplot(aes(x = fct_reorder(speaker, total_ross), y = total_ross)) + 
+  geom_col(fill = "dodgerblue", alpha = 0.4) + 
+  labs(x = "", y = "Number of lines that begin with 'Ross'") +
+  coord_flip() + 
+  theme_minimal()
+```
+
+---
+
+# Example: Speaking Patterns in Friends
+
+Let's look into speaking patterns of the six main characters of *Friends*, as a function of *line number*. 
+
+- We'll create a *strip plot* that shows the line numbers for which each character speaks.
+
+- **Season 1, Episode 1 only!**
+
+
+```r
+friends %&gt;%
+  ... # What comes next?
+```
+
+
+
+
+---
+
+# Tidy Text Format
+
+Text data is often simpler to analyze if it is in *tidy* format. 
+
+- In text analysis, this means **one word per row**. 
+
+- The `unnest_tokens()` function from the `tidytext` package can help with this!
+
+--
+
+We'll only focus on **Season 1** because this dataset will be *huge*!
+
+
+```r
+friends_s01_tidy = friends %&gt;%
+  filter(season == 1) %&gt;%
+  unnest_tokens(output = word, input = text)
+```
+
+--
+
+**Some Notes**
+
+`unnest_tokens()` takes two *arguments*:
+
+- `output`: The name of the new column that contains individual words
+- `input`: The name of the column with text that gets split
+
+---
+
+# Word Count
+
+Now that the text is in **tidy format**, we can, among other things, count up the number of *words* per character. 
+
+
+```r
+friends_s01_tidy %&gt;%
+  filter(speaker %in% 
+           c("Monica Geller", "Ross Geller", "Rachel Green", 
+             "Phoebe Buffay", "Chandler Bing", "Joey Tribbiani")) %&gt;%
+  count(speaker, sort = TRUE)
+```
+
+```
+## # A tibble: 6 x 2
+##   speaker            n
+##   &lt;chr&gt;          &lt;int&gt;
+## 1 Ross Geller    10569
+## 2 Rachel Green    8854
+## 3 Chandler Bing   8796
+## 4 Monica Geller   7851
+## 5 Phoebe Buffay   6522
+## 6 Joey Tribbiani  6195
+```
+
+---
+
+# Word Count
+
+Now that the text is in **tidy format**, we can, among other things, count up the number of *words* per character. 
+
+
+```r
+friends_s01_tidy %&gt;%
+  filter(speaker %in% 
+           c("Monica Geller", "Ross Geller", "Rachel Green", 
+             "Phoebe Buffay", "Chandler Bing", "Joey Tribbiani")) %&gt;%
+  count(episode, speaker) %&gt;%
+  ggplot(aes(x = factor(episode), y = n)) + 
+  geom_col() + 
+  facet_wrap( ~ speaker) + 
+  labs(x = "Episode Number", y = "Number of words spoken", 
+       title = "How many words were spoken in Season 1 of Friends?", 
+       subtitle = "(six main characters only)") +
+  coord_flip() + 
+  theme_minimal()
+```
+
+---
+
+class: center, middle, frame
+
+# Sentiment Analysis
+
+---
+
+# Sentiment Analysis
+
+Using the text mining techniques covered previously, one piece of information we can extract from text is the **sentiment of the text**. 
+
+- Is the text positive or negative? Does it evoke *surprise* or *disgust*?
+
+- If we *sum* the sentiment for *each word in a document*, does this reflect an accurate measure of sentiment for the document as a whole?
+
+--
+
+There are a variety of ways to judge the **sentiment** of a text. 
+
+- One such *sentiment lexicon* is the `bing` lexicon from [Bing Liu and collaborators](https://www.cs.uic.edu/~liub/FBS/sentiment-analysis.html). 
+
+From `tidytext`:
+
+
+```r
+get_sentiments("bing")
+```
+
+---
+
+# Taylor Swift
+
+I would Love to tell a Story about the sentiment of Taylor Swift's songs. 
+
+From [TidyTuesday](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-09-29/readme.md) via Rosie Baillie and Dr. Sara Stoudt:
+
+
+```r
+taylor_swift_lyrics &lt;- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-29/taylor_swift_lyrics.csv')
+```
+
+---
+
+# Tidy Text
+
+Let's use `unnest_tokens()` to convert the data to *tidy* format!
+
+- Each word will appear in its own row.
+
+
+```r
+tswift_tidy = taylor_swift_lyrics %&gt;%
+  unnest_tokens(output = word, input = Lyrics)
+```
+
+--
+
+First, we'll want to *remove* **stop words**:
+
+
+```r
+head(stop_words) # 'stop_words' from 'tidytext' package
+```
+
+```
+## # A tibble: 6 x 2
+##   word      lexicon
+##   &lt;chr&gt;     &lt;chr&gt;  
+## 1 a         SMART  
+## 2 a's       SMART  
+## 3 able      SMART  
+## 4 about     SMART  
+## 5 above     SMART  
+## 6 according SMART
+```
+
+---
+
+# `anti_join()`
+
+Here's where we can use `anti_join()`!
+
+- *Remove* stop words from `tswift_tidy`. 
+
+
+```r
+tswift_tidy_anti = tswift_tidy %&gt;%
+  anti_join(stop_words, by = "word")
+```
+
+---
+
+# Which words does T. Swift say the most?
+
+
+```r
+tswift_tidy_anti %&gt;%
+  count(word, sort = TRUE) %&gt;% 
+  slice_max(n, n = 22) %&gt;%
+  ggplot(aes(x = fct_reorder(word, n), y = n)) + 
+  geom_col() + 
+  labs(x = "", y = "Count", 
+       title = "Which words does Taylor Swift LOVE the most?") +
+  coord_flip() + 
+  theme_minimal()
+```
+
+![](07-Topics_in_DS_files/figure-html/unnamed-chunk-24-1.png)&lt;!-- --&gt;
+
+---
+
+# Back to Sentiment Analysis
+
+The text is in **tidy format** (one word per row), so we can proceed with the **sentiment analysis**. 
+
+Let's **join** the `bing` lexicon to `tswift_tidy_anti`. 
+
+- We'll use `inner_join()`, because we want only the words that appear in **both** the song and the `bing` lexicon:
+
+
+```r
+song_sentiment = tswift_tidy_anti %&gt;%
+  inner_join(get_sentiments("bing"), by = "word")
+```
+
+---
+
+# Taylor Swift Sentiment Analysis
+
+Next, we'll `count()` up the `word` and `sentiment` combinations, extract the **top 22** for each sentiment, and pass them off to `ggplot()` and `geom_col()`. 
+
+- I used `scales = "free_y"` in `facet_wrap()` so that each facet contained a different set of words (positive vs negative sentiments).
+
+
+```r
+sentiment_counts = song_sentiment %&gt;%
+  count(word, sentiment, sort = TRUE)
+
+sentiment_counts %&gt;%
+  group_by(sentiment) %&gt;%
+  top_n(10, wt = n) %&gt;%
+  ggplot(aes(x = fct_reorder(word, n), y = n, 
+             fill = sentiment)) + 
+  geom_col() + 
+  facet_wrap( ~ sentiment, scales = "free_y") + 
+  labs(x = "", y = "Contribution to sentiment", 
+       title = "Sentiment Analysis of Taylor Swift Songs") +
+  theme_bw() + 
+  theme(legend.position = "none") +
+  coord_flip()
+```
+
+---
+
+# Taylor Swift Sentiment Analysis
+
+.center[
+&lt;img src="07-Topics_in_DS_files/figure-html/unnamed-chunk-27-1.png" width="65%" /&gt;
+]
+
+---
+
+class: center, middle, frame
+
+# Interactive Data Graphics
+
+---
+
+# Needed Packages
+
+
+```r
+library(plotly)
+library(babynames)
+library(ggthemes)
+library(gapminder)
+library(leaflet)
+library(nycflights13)
+```
+
+
+---
+
+# 2D Data Graphics
+
+.center[
+&lt;img src="07-Topics_in_DS_files/figure-html/unnamed-chunk-29-1.png" width="70%" /&gt;
+]
+
+---
+
+# 2D Data Graphics
+
+.center[
+&lt;img src="07-Topics_in_DS_files/figure-html/unnamed-chunk-30-1.png" width="65%" /&gt;
+]
+
+---
+
+# 2D Data Graphics
+
+.center[
+&lt;img src="07-Topics_in_DS_files/figure-html/unnamed-chunk-31-1.png" width="70%" /&gt;
+]
+
+---
+
+# Introducing `plotly`
+
+The `plotly` package is used for creating *dynamic* and *interactive* **web-based graphics**. 
+
+- via the open-source Javascript library [plotly.js](https://plot.ly/javascript/). 
+
+.center[
+&lt;img src="plotly_logo.png" width="267" /&gt;
+]
+
+--
+
+While there are many uses for `plotly`, one particular convenience is that it can convert any `ggplot2` object into an interactive object using `ggplotly()`. 
+
+---
+
+# Our First Interactive Graphic
+
+Run the following to create a plot that we used earlier in the semester, and assign it to the object `ant_bob_plot`:
+
+```r
+ant_bob_plot = babynames %&gt;%
+  filter(name %in% c("Anthony", "Robert") &amp; sex == "M") %&gt;%
+  ggplot(aes(x = year, y = n, color = name)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "Year", y = "Name Count by Year", title = "Anthony and Robert Count",
+       caption = 'Data: ssa.gov', 
+       color = "Name", shape = "Name") + 
+  theme_minimal()
+ant_bob_plot
+```
+
+Next, run `ggplotly(ant_bob_plot)` to make the plot *interactive*. 
+
+---
+
+# Our First Interactive Graphic
+
+
+```r
+ggplotly(ant_bob_plot)
+```
+
+```{=html}
+&lt;div id="htmlwidget-9454d0b881dade4cde91" style="width:504px;height:504px;" class="plotly html-widget"&gt;&lt;/div&gt;
+&lt;script type="application/json" data-for="htmlwidget-9454d0b881dade4cde91"&gt;{"x":{"data":[{"x":[1880,1881,1882,1883,1884,1885,1886,1887,1888,1889,1890,1891,1892,1893,1894,1895,1896,1897,1898,1899,1900,1901,1902,1903,1904,1905,1906,1907,1908,1909,1910,1911,1912,1913,1914,1915,1916,1917,1918,1919,1920,1921,1922,1923,1924,1925,1926,1927,1928,1929,1930,1931,1932,1933,1934,1935,1936,1937,1938,1939,1940,1941,1942,1943,1944,1945,1946,1947,1948,1949,1950,1951,1952,1953,1954,1955,1956,1957,1958,1959,1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017],"y":[130,128,139,143,179,153,174,153,193,219,189,170,255,220,257,221,276,249,325,291,406,323,420,399,422,490,542,593,690,758,980,1288,2480,2781,3695,4722,4749,5027,5168,4737,4946,5237,5092,5119,5193,5040,5061,4919,4717,4732,4678,4302,4221,3975,3839,3908,3978,4335,4688,4609,4766,5235,6210,6202,5605,5686,6771,8012,7881,8449,8622,9844,11191,11694,13128,14172,15552,17038,17425,17953,19498,20190,20105,20241,20135,20338,20625,20886,20237,20906,21188,19226,17464,16417,16393,16496,16612,16799,16815,17531,17613,18574,19644,19831,20957,22085,21949,23117,23630,24420,25075,24440,23165,21785,21599,20480,20503,20028,19630,19470,19648,19733,19584,20144,19603,19378,19401,19627,18391,16306,15487,14263,13195,12260,11571,10618,9851,8802],"text":["year: 1880&lt;br /&gt;n:   130&lt;br /&gt;name: Anthony","year: 1881&lt;br /&gt;n:   128&lt;br /&gt;name: Anthony","year: 1882&lt;br /&gt;n:   139&lt;br /&gt;name: Anthony","year: 1883&lt;br /&gt;n:   143&lt;br /&gt;name: Anthony","year: 1884&lt;br /&gt;n:   179&lt;br /&gt;name: Anthony","year: 1885&lt;br /&gt;n:   153&lt;br /&gt;name: Anthony","year: 1886&lt;br /&gt;n:   174&lt;br /&gt;name: Anthony","year: 1887&lt;br /&gt;n:   153&lt;br /&gt;name: Anthony","year: 1888&lt;br /&gt;n:   193&lt;br /&gt;name: Anthony","year: 1889&lt;br /&gt;n:   219&lt;br /&gt;name: Anthony","year: 1890&lt;br /&gt;n:   189&lt;br /&gt;name: Anthony","year: 1891&lt;br /&gt;n:   170&lt;br /&gt;name: Anthony","year: 1892&lt;br /&gt;n:   255&lt;br /&gt;name: Anthony","year: 1893&lt;br /&gt;n:   220&lt;br /&gt;name: Anthony","year: 1894&lt;br /&gt;n:   257&lt;br /&gt;name: Anthony","year: 1895&lt;br /&gt;n:   221&lt;br /&gt;name: Anthony","year: 1896&lt;br /&gt;n:   276&lt;br /&gt;name: Anthony","year: 1897&lt;br /&gt;n:   249&lt;br /&gt;name: Anthony","year: 1898&lt;br /&gt;n:   325&lt;br /&gt;name: Anthony","year: 1899&lt;br /&gt;n:   291&lt;br /&gt;name: Anthony","year: 1900&lt;br /&gt;n:   406&lt;br /&gt;name: Anthony","year: 1901&lt;br /&gt;n:   323&lt;br /&gt;name: Anthony","year: 1902&lt;br /&gt;n:   420&lt;br /&gt;name: Anthony","year: 1903&lt;br /&gt;n:   399&lt;br /&gt;name: Anthony","year: 1904&lt;br /&gt;n:   422&lt;br /&gt;name: Anthony","year: 1905&lt;br /&gt;n:   490&lt;br /&gt;name: Anthony","year: 1906&lt;br /&gt;n:   542&lt;br /&gt;name: Anthony","year: 1907&lt;br /&gt;n:   593&lt;br /&gt;name: Anthony","year: 1908&lt;br /&gt;n:   690&lt;br /&gt;name: Anthony","year: 1909&lt;br /&gt;n:   758&lt;br /&gt;name: Anthony","year: 1910&lt;br /&gt;n:   980&lt;br /&gt;name: Anthony","year: 1911&lt;br /&gt;n:  1288&lt;br /&gt;name: Anthony","year: 1912&lt;br /&gt;n:  2480&lt;br /&gt;name: Anthony","year: 1913&lt;br /&gt;n:  2781&lt;br /&gt;name: Anthony","year: 1914&lt;br /&gt;n:  3695&lt;br /&gt;name: Anthony","year: 1915&lt;br /&gt;n:  4722&lt;br /&gt;name: Anthony","year: 1916&lt;br /&gt;n:  4749&lt;br /&gt;name: Anthony","year: 1917&lt;br /&gt;n:  5027&lt;br /&gt;name: Anthony","year: 1918&lt;br /&gt;n:  5168&lt;br /&gt;name: Anthony","year: 1919&lt;br /&gt;n:  4737&lt;br /&gt;name: Anthony","year: 1920&lt;br /&gt;n:  4946&lt;br /&gt;name: Anthony","year: 1921&lt;br /&gt;n:  5237&lt;br /&gt;name: Anthony","year: 1922&lt;br /&gt;n:  5092&lt;br /&gt;name: Anthony","year: 1923&lt;br /&gt;n:  5119&lt;br /&gt;name: Anthony","year: 1924&lt;br /&gt;n:  5193&lt;br /&gt;name: Anthony","year: 1925&lt;br /&gt;n:  5040&lt;br /&gt;name: Anthony","year: 1926&lt;br /&gt;n:  5061&lt;br /&gt;name: Anthony","year: 1927&lt;br /&gt;n:  4919&lt;br /&gt;name: Anthony","year: 1928&lt;br /&gt;n:  4717&lt;br /&gt;name: Anthony","year: 1929&lt;br /&gt;n:  4732&lt;br /&gt;name: Anthony","year: 1930&lt;br /&gt;n:  4678&lt;br /&gt;name: Anthony","year: 1931&lt;br /&gt;n:  4302&lt;br /&gt;name: Anthony","year: 1932&lt;br /&gt;n:  4221&lt;br /&gt;name: Anthony","year: 1933&lt;br /&gt;n:  3975&lt;br /&gt;name: Anthony","year: 1934&lt;br /&gt;n:  3839&lt;br /&gt;name: Anthony","year: 1935&lt;br /&gt;n:  3908&lt;br /&gt;name: Anthony","year: 1936&lt;br /&gt;n:  3978&lt;br /&gt;name: Anthony","year: 1937&lt;br /&gt;n:  4335&lt;br /&gt;name: Anthony","year: 1938&lt;br /&gt;n:  4688&lt;br /&gt;name: Anthony","year: 1939&lt;br /&gt;n:  4609&lt;br /&gt;name: Anthony","year: 1940&lt;br /&gt;n:  4766&lt;br /&gt;name: Anthony","year: 1941&lt;br /&gt;n:  5235&lt;br /&gt;name: Anthony","year: 1942&lt;br /&gt;n:  6210&lt;br /&gt;name: Anthony","year: 1943&lt;br /&gt;n:  6202&lt;br /&gt;name: Anthony","year: 1944&lt;br /&gt;n:  5605&lt;br /&gt;name: Anthony","year: 1945&lt;br /&gt;n:  5686&lt;br /&gt;name: Anthony","year: 1946&lt;br /&gt;n:  6771&lt;br /&gt;name: Anthony","year: 1947&lt;br /&gt;n:  8012&lt;br /&gt;name: Anthony","year: 1948&lt;br /&gt;n:  7881&lt;br /&gt;name: Anthony","year: 1949&lt;br /&gt;n:  8449&lt;br /&gt;name: Anthony","year: 1950&lt;br /&gt;n:  8622&lt;br /&gt;name: Anthony","year: 1951&lt;br /&gt;n:  9844&lt;br /&gt;name: Anthony","year: 1952&lt;br /&gt;n: 11191&lt;br /&gt;name: Anthony","year: 1953&lt;br /&gt;n: 11694&lt;br /&gt;name: Anthony","year: 1954&lt;br /&gt;n: 13128&lt;br /&gt;name: Anthony","year: 1955&lt;br /&gt;n: 14172&lt;br /&gt;name: Anthony","year: 1956&lt;br /&gt;n: 15552&lt;br /&gt;name: Anthony","year: 1957&lt;br /&gt;n: 17038&lt;br /&gt;name: Anthony","year: 1958&lt;br /&gt;n: 17425&lt;br /&gt;name: Anthony","year: 1959&lt;br /&gt;n: 17953&lt;br /&gt;name: Anthony","year: 1960&lt;br /&gt;n: 19498&lt;br /&gt;name: Anthony","year: 1961&lt;br /&gt;n: 20190&lt;br /&gt;name: Anthony","year: 1962&lt;br /&gt;n: 20105&lt;br /&gt;name: Anthony","year: 1963&lt;br /&gt;n: 20241&lt;br /&gt;name: Anthony","year: 1964&lt;br /&gt;n: 20135&lt;br /&gt;name: Anthony","year: 1965&lt;br /&gt;n: 20338&lt;br /&gt;name: Anthony","year: 1966&lt;br /&gt;n: 20625&lt;br /&gt;name: Anthony","year: 1967&lt;br /&gt;n: 20886&lt;br /&gt;name: Anthony","year: 1968&lt;br /&gt;n: 20237&lt;br /&gt;name: Anthony","year: 1969&lt;br /&gt;n: 20906&lt;br /&gt;name: Anthony","year: 1970&lt;br /&gt;n: 21188&lt;br /&gt;name: Anthony","year: 1971&lt;br /&gt;n: 19226&lt;br /&gt;name: Anthony","year: 1972&lt;br /&gt;n: 17464&lt;br /&gt;name: Anthony","year: 1973&lt;br /&gt;n: 16417&lt;br /&gt;name: Anthony","year: 1974&lt;br /&gt;n: 16393&lt;br /&gt;name: Anthony","year: 1975&lt;br /&gt;n: 16496&lt;br /&gt;name: Anthony","year: 1976&lt;br /&gt;n: 16612&lt;br /&gt;name: Anthony","year: 1977&lt;br /&gt;n: 16799&lt;br /&gt;name: Anthony","year: 1978&lt;br /&gt;n: 16815&lt;br /&gt;name: Anthony","year: 1979&lt;br /&gt;n: 17531&lt;br /&gt;name: Anthony","year: 1980&lt;br /&gt;n: 17613&lt;br /&gt;name: Anthony","year: 1981&lt;br /&gt;n: 18574&lt;br /&gt;name: Anthony","year: 1982&lt;br /&gt;n: 19644&lt;br /&gt;name: Anthony","year: 1983&lt;br /&gt;n: 19831&lt;br /&gt;name: Anthony","year: 1984&lt;br /&gt;n: 20957&lt;br /&gt;name: Anthony","year: 1985&lt;br /&gt;n: 22085&lt;br /&gt;name: Anthony","year: 1986&lt;br /&gt;n: 21949&lt;br /&gt;name: Anthony","year: 1987&lt;br /&gt;n: 23117&lt;br /&gt;name: Anthony","year: 1988&lt;br /&gt;n: 23630&lt;br /&gt;name: Anthony","year: 1989&lt;br /&gt;n: 24420&lt;br /&gt;name: Anthony","year: 1990&lt;br /&gt;n: 25075&lt;br /&gt;name: Anthony","year: 1991&lt;br /&gt;n: 24440&lt;br /&gt;name: Anthony","year: 1992&lt;br /&gt;n: 23165&lt;br /&gt;name: Anthony","year: 1993&lt;br /&gt;n: 21785&lt;br /&gt;name: Anthony","year: 1994&lt;br /&gt;n: 21599&lt;br /&gt;name: Anthony","year: 1995&lt;br /&gt;n: 20480&lt;br /&gt;name: Anthony","year: 1996&lt;br /&gt;n: 20503&lt;br /&gt;name: Anthony","year: 1997&lt;br /&gt;n: 20028&lt;br /&gt;name: Anthony","year: 1998&lt;br /&gt;n: 19630&lt;br /&gt;name: Anthony","year: 1999&lt;br /&gt;n: 19470&lt;br /&gt;name: Anthony","year: 2000&lt;br /&gt;n: 19648&lt;br /&gt;name: Anthony","year: 2001&lt;br /&gt;n: 19733&lt;br /&gt;name: Anthony","year: 2002&lt;br /&gt;n: 19584&lt;br /&gt;name: Anthony","year: 2003&lt;br /&gt;n: 20144&lt;br /&gt;name: Anthony","year: 2004&lt;br /&gt;n: 19603&lt;br /&gt;name: Anthony","year: 2005&lt;br /&gt;n: 19378&lt;br /&gt;name: Anthony","year: 2006&lt;br /&gt;n: 19401&lt;br /&gt;name: Anthony","year: 2007&lt;br /&gt;n: 19627&lt;br /&gt;name: Anthony","year: 2008&lt;br /&gt;n: 18391&lt;br /&gt;name: Anthony","year: 2009&lt;br /&gt;n: 16306&lt;br /&gt;name: Anthony","year: 2010&lt;br /&gt;n: 15487&lt;br /&gt;name: Anthony","year: 2011&lt;br /&gt;n: 14263&lt;br /&gt;name: Anthony","year: 2012&lt;br /&gt;n: 13195&lt;br /&gt;name: Anthony","year: 2013&lt;br /&gt;n: 12260&lt;br /&gt;name: Anthony","year: 2014&lt;br /&gt;n: 11571&lt;br /&gt;name: Anthony","year: 2015&lt;br /&gt;n: 10618&lt;br /&gt;name: Anthony","year: 2016&lt;br /&gt;n:  9851&lt;br /&gt;name: Anthony","year: 2017&lt;br /&gt;n:  8802&lt;br /&gt;name: Anthony"],"type":"scatter","mode":"lines+markers","line":{"width":1.88976377952756,"color":"rgba(248,118,109,1)","dash":"solid"},"hoveron":"points","name":"Anthony","legendgroup":"Anthony","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","marker":{"autocolorscale":false,"color":"rgba(248,118,109,1)","opacity":1,"size":5.66929133858268,"symbol":"circle","line":{"width":1.88976377952756,"color":"rgba(248,118,109,1)"}},"frame":null},{"x":[1880,1881,1882,1883,1884,1885,1886,1887,1888,1889,1890,1891,1892,1893,1894,1895,1896,1897,1898,1899,1900,1901,1902,1903,1904,1905,1906,1907,1908,1909,1910,1911,1912,1913,1914,1915,1916,1917,1918,1919,1920,1921,1922,1923,1924,1925,1926,1927,1928,1929,1930,1931,1932,1933,1934,1935,1936,1937,1938,1939,1940,1941,1942,1943,1944,1945,1946,1947,1948,1949,1950,1951,1952,1953,1954,1955,1956,1957,1958,1959,1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017],"y":[2415,2140,2500,2334,2468,2322,2443,2125,2814,2513,2541,2240,2710,2563,2497,2635,2719,2701,2932,2609,3821,2543,3180,3044,3414,3410,3635,4020,4219,4563,5609,6526,12837,15683,21188,28738,31741,35220,40620,41027,48678,52781,53797,56120,60798,60896,61131,61669,60696,59796,62147,60513,59262,54212,55828,56524,58491,61829,62265,59645,61195,64233,71835,74862,70848,69933,84134,91642,85467,83869,83565,86361,86622,86195,86288,83719,83898,81706,77286,74494,72369,72900,70203,70016,69999,63134,59333,56380,58211,58327,57201,50655,43035,38701,37038,35335,33809,34220,33390,34023,34281,34402,34421,32745,31772,32088,31341,30228,30313,30064,28871,26828,24088,22443,20555,18583,17674,16304,15524,14539,13737,12663,12024,11393,10675,10159,9899,9376,8827,7826,7554,6968,6946,6708,6633,6111,5977,5507],"text":["year: 1880&lt;br /&gt;n:  2415&lt;br /&gt;name: Robert","year: 1881&lt;br /&gt;n:  2140&lt;br /&gt;name: Robert","year: 1882&lt;br /&gt;n:  2500&lt;br /&gt;name: Robert","year: 1883&lt;br /&gt;n:  2334&lt;br /&gt;name: Robert","year: 1884&lt;br /&gt;n:  2468&lt;br /&gt;name: Robert","year: 1885&lt;br /&gt;n:  2322&lt;br /&gt;name: Robert","year: 1886&lt;br /&gt;n:  2443&lt;br /&gt;name: Robert","year: 1887&lt;br /&gt;n:  2125&lt;br /&gt;name: Robert","year: 1888&lt;br /&gt;n:  2814&lt;br /&gt;name: Robert","year: 1889&lt;br /&gt;n:  2513&lt;br /&gt;name: Robert","year: 1890&lt;br /&gt;n:  2541&lt;br /&gt;name: Robert","year: 1891&lt;br /&gt;n:  2240&lt;br /&gt;name: Robert","year: 1892&lt;br /&gt;n:  2710&lt;br /&gt;name: Robert","year: 1893&lt;br /&gt;n:  2563&lt;br /&gt;name: Robert","year: 1894&lt;br /&gt;n:  2497&lt;br /&gt;name: Robert","year: 1895&lt;br /&gt;n:  2635&lt;br /&gt;name: Robert","year: 1896&lt;br /&gt;n:  2719&lt;br /&gt;name: Robert","year: 1897&lt;br /&gt;n:  2701&lt;br /&gt;name: Robert","year: 1898&lt;br /&gt;n:  2932&lt;br /&gt;name: Robert","year: 1899&lt;br /&gt;n:  2609&lt;br /&gt;name: Robert","year: 1900&lt;br /&gt;n:  3821&lt;br /&gt;name: Robert","year: 1901&lt;br /&gt;n:  2543&lt;br /&gt;name: Robert","year: 1902&lt;br /&gt;n:  3180&lt;br /&gt;name: Robert","year: 1903&lt;br /&gt;n:  3044&lt;br /&gt;name: Robert","year: 1904&lt;br /&gt;n:  3414&lt;br /&gt;name: Robert","year: 1905&lt;br /&gt;n:  3410&lt;br /&gt;name: Robert","year: 1906&lt;br /&gt;n:  3635&lt;br /&gt;name: Robert","year: 1907&lt;br /&gt;n:  4020&lt;br /&gt;name: Robert","year: 1908&lt;br /&gt;n:  4219&lt;br /&gt;name: Robert","year: 1909&lt;br /&gt;n:  4563&lt;br /&gt;name: Robert","year: 1910&lt;br /&gt;n:  5609&lt;br /&gt;name: Robert","year: 1911&lt;br /&gt;n:  6526&lt;br /&gt;name: Robert","year: 1912&lt;br /&gt;n: 12837&lt;br /&gt;name: Robert","year: 1913&lt;br /&gt;n: 15683&lt;br /&gt;name: Robert","year: 1914&lt;br /&gt;n: 21188&lt;br /&gt;name: Robert","year: 1915&lt;br /&gt;n: 28738&lt;br /&gt;name: Robert","year: 1916&lt;br /&gt;n: 31741&lt;br /&gt;name: Robert","year: 1917&lt;br /&gt;n: 35220&lt;br /&gt;name: Robert","year: 1918&lt;br /&gt;n: 40620&lt;br /&gt;name: Robert","year: 1919&lt;br /&gt;n: 41027&lt;br /&gt;name: Robert","year: 1920&lt;br /&gt;n: 48678&lt;br /&gt;name: Robert","year: 1921&lt;br /&gt;n: 52781&lt;br /&gt;name: Robert","year: 1922&lt;br /&gt;n: 53797&lt;br /&gt;name: Robert","year: 1923&lt;br /&gt;n: 56120&lt;br /&gt;name: Robert","year: 1924&lt;br /&gt;n: 60798&lt;br /&gt;name: Robert","year: 1925&lt;br /&gt;n: 60896&lt;br /&gt;name: Robert","year: 1926&lt;br /&gt;n: 61131&lt;br /&gt;name: Robert","year: 1927&lt;br /&gt;n: 61669&lt;br /&gt;name: Robert","year: 1928&lt;br /&gt;n: 60696&lt;br /&gt;name: Robert","year: 1929&lt;br /&gt;n: 59796&lt;br /&gt;name: Robert","year: 1930&lt;br /&gt;n: 62147&lt;br /&gt;name: Robert","year: 1931&lt;br /&gt;n: 60513&lt;br /&gt;name: Robert","year: 1932&lt;br /&gt;n: 59262&lt;br /&gt;name: Robert","year: 1933&lt;br /&gt;n: 54212&lt;br /&gt;name: Robert","year: 1934&lt;br /&gt;n: 55828&lt;br /&gt;name: Robert","year: 1935&lt;br /&gt;n: 56524&lt;br /&gt;name: Robert","year: 1936&lt;br /&gt;n: 58491&lt;br /&gt;name: Robert","year: 1937&lt;br /&gt;n: 61829&lt;br /&gt;name: Robert","year: 1938&lt;br /&gt;n: 62265&lt;br /&gt;name: Robert","year: 1939&lt;br /&gt;n: 59645&lt;br /&gt;name: Robert","year: 1940&lt;br /&gt;n: 61195&lt;br /&gt;name: Robert","year: 1941&lt;br /&gt;n: 64233&lt;br /&gt;name: Robert","year: 1942&lt;br /&gt;n: 71835&lt;br /&gt;name: Robert","year: 1943&lt;br /&gt;n: 74862&lt;br /&gt;name: Robert","year: 1944&lt;br /&gt;n: 70848&lt;br /&gt;name: Robert","year: 1945&lt;br /&gt;n: 69933&lt;br /&gt;name: Robert","year: 1946&lt;br /&gt;n: 84134&lt;br /&gt;name: Robert","year: 1947&lt;br /&gt;n: 91642&lt;br /&gt;name: Robert","year: 1948&lt;br /&gt;n: 85467&lt;br /&gt;name: Robert","year: 1949&lt;br /&gt;n: 83869&lt;br /&gt;name: Robert","year: 1950&lt;br /&gt;n: 83565&lt;br /&gt;name: Robert","year: 1951&lt;br /&gt;n: 86361&lt;br /&gt;name: Robert","year: 1952&lt;br /&gt;n: 86622&lt;br /&gt;name: Robert","year: 1953&lt;br /&gt;n: 86195&lt;br /&gt;name: Robert","year: 1954&lt;br /&gt;n: 86288&lt;br /&gt;name: Robert","year: 1955&lt;br /&gt;n: 83719&lt;br /&gt;name: Robert","year: 1956&lt;br /&gt;n: 83898&lt;br /&gt;name: Robert","year: 1957&lt;br /&gt;n: 81706&lt;br /&gt;name: Robert","year: 1958&lt;br /&gt;n: 77286&lt;br /&gt;name: Robert","year: 1959&lt;br /&gt;n: 74494&lt;br /&gt;name: Robert","year: 1960&lt;br /&gt;n: 72369&lt;br /&gt;name: Robert","year: 1961&lt;br /&gt;n: 72900&lt;br /&gt;name: Robert","year: 1962&lt;br /&gt;n: 70203&lt;br /&gt;name: Robert","year: 1963&lt;br /&gt;n: 70016&lt;br /&gt;name: Robert","year: 1964&lt;br /&gt;n: 69999&lt;br /&gt;name: Robert","year: 1965&lt;br /&gt;n: 63134&lt;br /&gt;name: Robert","year: 1966&lt;br /&gt;n: 59333&lt;br /&gt;name: Robert","year: 1967&lt;br /&gt;n: 56380&lt;br /&gt;name: Robert","year: 1968&lt;br /&gt;n: 58211&lt;br /&gt;name: Robert","year: 1969&lt;br /&gt;n: 58327&lt;br /&gt;name: Robert","year: 1970&lt;br /&gt;n: 57201&lt;br /&gt;name: Robert","year: 1971&lt;br /&gt;n: 50655&lt;br /&gt;name: Robert","year: 1972&lt;br /&gt;n: 43035&lt;br /&gt;name: Robert","year: 1973&lt;br /&gt;n: 38701&lt;br /&gt;name: Robert","year: 1974&lt;br /&gt;n: 37038&lt;br /&gt;name: Robert","year: 1975&lt;br /&gt;n: 35335&lt;br /&gt;name: Robert","year: 1976&lt;br /&gt;n: 33809&lt;br /&gt;name: Robert","year: 1977&lt;br /&gt;n: 34220&lt;br /&gt;name: Robert","year: 1978&lt;br /&gt;n: 33390&lt;br /&gt;name: Robert","year: 1979&lt;br /&gt;n: 34023&lt;br /&gt;name: Robert","year: 1980&lt;br /&gt;n: 34281&lt;br /&gt;name: Robert","year: 1981&lt;br /&gt;n: 34402&lt;br /&gt;name: Robert","year: 1982&lt;br /&gt;n: 34421&lt;br /&gt;name: Robert","year: 1983&lt;br /&gt;n: 32745&lt;br /&gt;name: Robert","year: 1984&lt;br /&gt;n: 31772&lt;br /&gt;name: Robert","year: 1985&lt;br /&gt;n: 32088&lt;br /&gt;name: Robert","year: 1986&lt;br /&gt;n: 31341&lt;br /&gt;name: Robert","year: 1987&lt;br /&gt;n: 30228&lt;br /&gt;name: Robert","year: 1988&lt;br /&gt;n: 30313&lt;br /&gt;name: Robert","year: 1989&lt;br /&gt;n: 30064&lt;br /&gt;name: Robert","year: 1990&lt;br /&gt;n: 28871&lt;br /&gt;name: Robert","year: 1991&lt;br /&gt;n: 26828&lt;br /&gt;name: Robert","year: 1992&lt;br /&gt;n: 24088&lt;br /&gt;name: Robert","year: 1993&lt;br /&gt;n: 22443&lt;br /&gt;name: Robert","year: 1994&lt;br /&gt;n: 20555&lt;br /&gt;name: Robert","year: 1995&lt;br /&gt;n: 18583&lt;br /&gt;name: Robert","year: 1996&lt;br /&gt;n: 17674&lt;br /&gt;name: Robert","year: 1997&lt;br /&gt;n: 16304&lt;br /&gt;name: Robert","year: 1998&lt;br /&gt;n: 15524&lt;br /&gt;name: Robert","year: 1999&lt;br /&gt;n: 14539&lt;br /&gt;name: Robert","year: 2000&lt;br /&gt;n: 13737&lt;br /&gt;name: Robert","year: 2001&lt;br /&gt;n: 12663&lt;br /&gt;name: Robert","year: 2002&lt;br /&gt;n: 12024&lt;br /&gt;name: Robert","year: 2003&lt;br /&gt;n: 11393&lt;br /&gt;name: Robert","year: 2004&lt;br /&gt;n: 10675&lt;br /&gt;name: Robert","year: 2005&lt;br /&gt;n: 10159&lt;br /&gt;name: Robert","year: 2006&lt;br /&gt;n:  9899&lt;br /&gt;name: Robert","year: 2007&lt;br /&gt;n:  9376&lt;br /&gt;name: Robert","year: 2008&lt;br /&gt;n:  8827&lt;br /&gt;name: Robert","year: 2009&lt;br /&gt;n:  7826&lt;br /&gt;name: Robert","year: 2010&lt;br /&gt;n:  7554&lt;br /&gt;name: Robert","year: 2011&lt;br /&gt;n:  6968&lt;br /&gt;name: Robert","year: 2012&lt;br /&gt;n:  6946&lt;br /&gt;name: Robert","year: 2013&lt;br /&gt;n:  6708&lt;br /&gt;name: Robert","year: 2014&lt;br /&gt;n:  6633&lt;br /&gt;name: Robert","year: 2015&lt;br /&gt;n:  6111&lt;br /&gt;name: Robert","year: 2016&lt;br /&gt;n:  5977&lt;br /&gt;name: Robert","year: 2017&lt;br /&gt;n:  5507&lt;br /&gt;name: Robert"],"type":"scatter","mode":"lines+markers","line":{"width":1.88976377952756,"color":"rgba(0,191,196,1)","dash":"solid"},"hoveron":"points","name":"Robert","legendgroup":"Robert","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","marker":{"autocolorscale":false,"color":"rgba(0,191,196,1)","opacity":1,"size":5.66929133858268,"symbol":"circle","line":{"width":1.88976377952756,"color":"rgba(0,191,196,1)"}},"frame":null}],"layout":{"margin":{"t":40.8401826484018,"r":7.30593607305936,"b":37.2602739726027,"l":54.7945205479452},"font":{"color":"rgba(0,0,0,1)","family":"","size":14.6118721461187},"title":{"text":"Anthony and Robert Count","font":{"color":"rgba(0,0,0,1)","family":"","size":17.5342465753425},"x":0,"xref":"paper"},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[1873.15,2023.85],"tickmode":"array","ticktext":["1880","1920","1960","2000"],"tickvals":[1880,1920,1960,2000],"categoryorder":"array","categoryarray":["1880","1920","1960","2000"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.65296803652968,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.689497716895},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176,"zeroline":false,"anchor":"y","title":{"text":"Year","font":{"color":"rgba(0,0,0,1)","family":"","size":14.6118721461187}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[-4447.7,96217.7],"tickmode":"array","ticktext":["0","25000","50000","75000"],"tickvals":[0,25000,50000,75000],"categoryorder":"array","categoryarray":["0","25000","50000","75000"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.65296803652968,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.689497716895},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176,"zeroline":false,"anchor":"x","title":{"text":"Name Count by Year","font":{"color":"rgba(0,0,0,1)","family":"","size":14.6118721461187}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":true,"legend":{"bgcolor":null,"bordercolor":null,"borderwidth":0,"font":{"color":"rgba(0,0,0,1)","family":"","size":11.689497716895},"y":0.938132733408324},"annotations":[{"text":"Name","x":1.02,"y":1,"showarrow":false,"ax":0,"ay":0,"font":{"color":"rgba(0,0,0,1)","family":"","size":14.6118721461187},"xref":"paper","yref":"paper","textangle":-0,"xanchor":"left","yanchor":"bottom","legendTitle":true}],"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","showSendToCloud":false},"source":"A","attrs":{"7ae6e41598e":{"x":{},"y":{},"colour":{},"type":"scatter"},"7ae45eb22f":{"x":{},"y":{},"colour":{}}},"cur_data":"7ae6e41598e","visdat":{"7ae6e41598e":["function (y) ","x"],"7ae45eb22f":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}&lt;/script&gt;
+```
+
+---
+
+# Practice
+Using the `gapminder_2007` data from an earlier homework, make the graph below interactive. 
+
+```r
+gapminder_2007 = gapminder %&gt;%
+  filter(year == 2007)
+```
+
+.center[
+&lt;img src="07-Topics_in_DS_files/figure-html/unnamed-chunk-36-1.png" width="45%" /&gt;
+]
+
+---
+
+class: center, middle
+
+# Leaflet
+
+---
+
+# Maps
+
+**Why maps?**
+
+*Maps* (you've probably heard of these) are an additional form of *dataviz* used to display **spatial data**. 
+
+--
+
+**Spatial data** are data that contain *geographic coordinates*. 
+
+- While these coordinates are usually coded *numerically*, they are very different from other numerical data that we have seen so far this semester. 
+
+--
+
+
+```r
+library(nycflights13)
+airports %&gt;%
+  select(name, lat, lon, tzone) %&gt;%
+  head(3)
+```
+
+```
+## # A tibble: 3 x 4
+##   name                            lat   lon tzone           
+##   &lt;chr&gt;                         &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;           
+## 1 Lansdowne Airport              41.1 -80.6 America/New_York
+## 2 Moton Field Municipal Airport  32.5 -85.7 America/Chicago 
+## 3 Schaumburg Regional            42.0 -88.1 America/Chicago
+```
+
+---
+
+# U.S. Airports
+
+We've looked at the `airports` data before, but in a slightly different context.
+- e.g., using `left_join()` to link airport names to `flights`
+
+Now let's utilize the *location data* in `airports`. 
+
+--
+
+First, let's clean the data a bit:
+
+
+```r
+airports_filter = airports %&gt;%
+  filter(tzone %in% c("America/New_York", "America/Chicago", "America/Los_Angeles", 
+                      "America/Vancouver", "America/Phoenix", "America/Denver"))
+```
+
+---
+
+# Our First Interactive Map!
+
+
+```r
+leaflet(airports_filter) %&gt;%
+  addTiles() %&gt;%
+  addMarkers(lng = ~lon, lat = ~lat)
+```
+
+---
+
+# Add an Icon!
+
+
+```r
+plane_icon = makeIcon("https://cdn4.iconfinder.com/data/icons/dot/256/air_plane_airport.png", 
+                      iconWidth = 30, iconHeight = 30)
+leaflet(airports_filter) %&gt;%
+  addTiles() %&gt;%
+  addMarkers(lng = ~lon, lat = ~lat, icon = plane_icon)
+```
+
+--
+
+(Maybe add something clearer than an icon...)
+
+---
+
+# Just use circles. 
+
+
+```r
+leaflet(airports_filter) %&gt;%
+  addTiles() %&gt;%
+  addCircleMarkers(lng = ~lon, lat = ~lat, stroke = FALSE, 
+                   radius = 5, fillOpacity = 0.7)
+```
+
+---
+
+# Adding Information
+
+We can add a `color` and `popup` characteristic to the map. For example, let's make the circle markers different colors for the different *time zones* (`tzone`). 
+
+First, we need to define a color palette based on a factor (`tzone` in this case):
+
+
+```r
+pal = colorFactor(palette = "Dark2", domain = airports_filter$tzone)
+leaflet(airports_filter) %&gt;%
+  addTiles() %&gt;%
+  addCircleMarkers(lng = ~lon, lat = ~lat, 
+                   stroke = FALSE, radius = 5, fillOpacity = 0.7, 
+*                  color = ~pal(tzone), popup = ~name)
+```
+
+The `popup = ~name` gives the name of the airport when you click on the marker. 
+
+---
+
+# Add Legend
+
+
+```r
+pal = colorFactor(palette = "Dark2", domain = airports_filter$tzone)
+leaflet(airports_filter) %&gt;%
+  addTiles() %&gt;%
+  addCircleMarkers(lng = ~lon, lat = ~lat, 
+                   stroke = FALSE, radius = 5, fillOpacity = 0.7, 
+                   color = ~pal(tzone), popup = ~name) %&gt;%
+  addLegend(position = "bottomright", title = "Time Zone",
+            pal = pal, values = ~tzone, opacity = 1)
+```
+
+---
+
+# Focus on One Area (and zoom out)
+
+.center[
+&lt;img src="simmons_location.png" width="507" /&gt;
+]
+
+---
+
+# Focus on One Area (and zoom out)
+
+**Note**: Had to play with the `lng` and `lat` a bit...
+
+
+```r
+leaflet(airports_filter) %&gt;%
+  addTiles() %&gt;%
+  addCircleMarkers(lng = ~lon, lat = ~lat, 
+                   stroke = FALSE, radius = 5, fillOpacity = 0.7, 
+                   color = ~pal(tzone), popup = ~name) %&gt;%
+  addLegend(position = "bottomright", title = "Time Zone",
+            pal = pal, values = ~tzone, opacity = 1) %&gt;%
+  setView(lng = -71.0999, lat = 42.3394, zoom = 20) 
+```
+
+---
+
+# Continuous Color Palette 
+
+We can use a continuous color palette (such as `Reds`) to illustrate a **continuous variable** (e.g., `alt`) rather than **categorical** (e.g., `tzone`). 
+
+
+```r
+pal = colorFactor(palette = "Reds", domain = airports_filter$alt)
+leaflet(airports_filter) %&gt;%
+  addTiles() %&gt;%
+  addCircleMarkers(lng = ~lon, lat = ~lat, 
+                   stroke = FALSE, radius = 5, fillOpacity = 0.7, 
+                   color = ~pal(alt), popup = ~name) %&gt;%
+  setView(lng = -71.00518, lat = 42.36435, zoom = 5)
+```
+
+---
+
+# Cluster Options for (Larger) Data
+
+**San Francisco Trees** (from *Tidy Tuesday*)
+
+- Click [HERE](https://github.com/rfordatascience/tidytuesday/tree/master/data/2020/2020-01-28) for more info. 
+
+
+```r
+sf_trees = read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-01-28/sf_trees.csv')
+#View(sf_trees)
+
+leaflet(sf_trees) %&gt;%
+  addTiles() %&gt;%
+  addMarkers(lng = ~longitude, lat = ~latitude, 
+*            clusterOptions = markerClusterOptions(),
+             popup = ~address)
+```
+
+---
+
+# More Info
+
+If you're interested in `leaflet`, here are some additional resources:
+
+- [Leaflet for R](https://rstudio.github.io/leaflet/)
+
+- [Making interactive leaflet maps with R](https://pakillo.github.io/r-leaflet-maps/r-leaflet-maps-slides.html#1)
+
+- [Leaflet Cheat Sheet](https://ugoproto.github.io/ugo_r_doc/pdf/leaflet-cheat-sheet.pdf)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"countIncrementalSlides": false,
+"highlightLines": true
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
