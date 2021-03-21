@@ -25,12 +25,10 @@ knitr::opts_chunk$set(
 
 ```{r, include = FALSE}
 library(tidyverse)
-library(mdsr)
-library(ngram) 
-library(ggwordcloud)
 library(tidytext)
 
 library(plotly)
+library(mdsr)
 library(babynames)
 library(ggthemes)
 library(gapminder)
@@ -46,9 +44,6 @@ pagedown::chrome_print("~/Dropbox/Teaching/03-Simmons Courses/MATH228-Introducti
 
 ```{r, eval = FALSE}
 library(tidyverse)
-library(mdsr)
-library(ngram) 
-library(ggwordcloud)
 library(tidytext)
 ```
 
@@ -491,6 +486,7 @@ class: center, middle, frame
 
 ```{r, eval = FALSE}
 library(plotly)
+library(mdsr)
 library(babynames)
 library(ggthemes)
 library(gapminder)
