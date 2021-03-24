@@ -15,6 +15,7 @@ output:
 ```{r xaringan-themer, include = FALSE}
 library(xaringanthemer)
 mono_accent(base_color = "#4682B4") #3E8A83?
+options(htmltools.preserve.raw = FALSE)
 ```
 
 ```{r, echo = FALSE}
