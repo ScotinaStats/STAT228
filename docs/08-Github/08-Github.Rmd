@@ -124,7 +124,7 @@ knitr::include_graphics("git_terminal.png")
 
 Enter `git --version` and press `enter`/`return` to see its version. If you see a version, you're all set!
 
-- My version is `2.24.1`. 
+- My version is `2.21.1`. 
 
 - If Git is *not installed*, you'll see something like `git: command not found`. 
 
