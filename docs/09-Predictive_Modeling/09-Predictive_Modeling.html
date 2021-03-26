@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>STAT 228: Introduction to Data Science</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Anthony Scotina" />
+    <script src="libs/header-attrs-2.6/header-attrs.js"></script>
+    <link rel="stylesheet" href="my-theme.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# STAT 228: Introduction to Data Science
+## Predictive Modeling
+### Anthony Scotina
+
+---
+
+
+
+
+
+
+
+
+&lt;!--
+pagedown::chrome_print("~/Dropbox/Teaching/03-Simmons Courses/MATH228-Introduction to Data Science/Lecture Slides/07-Predictive_Modeling/07-Predictive_Modeling.html")
+--&gt;
+
+# Needed Packages
+
+
+```r
+library(tidyverse)
+library(tidymodels)
+library(AmesHousing)
+```
+
+---
+
+# Recap
+
+**The Data Science Pipeline** [(Grolemund and Wickham)](https://r4ds.had.co.nz/)
+
+.center[
+&lt;img src="ds_pipeline.png" width="491" /&gt;
+]
+
+**So far**, we have used **graphics** to explore relationships among variables in data. 
+
+- They can help us identify *patterns* and *relationships* from visual inspection of data. 
+
+--
+
+An additional way to investigate relationships in data is through **modeling**.
+
+- Quantify the **magnitude** and **direction** of relationships among variables
+
+- **Predict**, and predict **accurately**
+
+---
+
+# Machine Learning (ML)
+
+The term **machine learning** was first used in the 1950s to label techniques for *extracting information from data* **without human intervention**. 
+
+Before computers were prevalent in statistical analyses, the dominant modeling framework was **regression**. 
+
+- Based on *linear algebra* and *calculus*
+
+--
+
+ML models emerged from regression, but are valued more for their ability to:
+
+- (i) make **accurate predictions** (for never-before-seen data), and 
+
+- (ii) scale to **large datasets**. 
+
+
+These models can be divided into **supervised** and **unsupervised** learning techniques. 
+
+---
+
+# Supervised Learning
+
+**Supervised learning** techniques aim to find a *function* that accurately describes how different **features** (*explanatory variables*) can be combined to make a **prediction** about a **target** (*response variable*). 
+
+- Also referred to as **predictive models**
+
+--
+
+**Examples**:
+
+- Predict **sales price** using *home attributes* (size, number of bedrooms, etc.)
+
+- Predict likelihood of **attrition** as a function of *employee attributes*
+
+- Predict **risk of readmission** using *patient attributes* (age, clinical measures, demographics, etc.)
+
+---
+
+# Unsupervised Learning
+
+**Unsupervised learning** aims to better understand and describe data, but does so *without* a **target**. 
+
+- The goal is typically to *identify groups* in a dataset. 
+
+--
+
+**Examples**:
+
+- Identify groups of online shoppers with similar browsing/purchase histories, along with items of interest to shoppers within each group
+
+- Identify patients in an observational study receiving *different treatments* but otherwise have *similar characteristics*
+    - Can be used to emulate a **randomized trial**
+
+---
+
+class: center, middle, frame
+
+# Predictive Modeling
+
+---
+
+# `AmesHousing`
+
+We'll use property sales information from the `AmesHousing` package to illustrate some of the techniques that follow. 
+
+- 81 variables measured on 2,930 properties in **Ames, IA**
+- Main variable of interest (i.e., the **target**): `Sale_Price`
+
+
+```r
+# Load the *cleaned* dataset
+ames = AmesHousing::make_ames()
+dim(ames)
+```
+
+```
+## [1] 2930   81
+```
+
+First let's attempt to predict `Sale_Price` (Sale price of the property, in dollars) as a *function of* `Gr_Liv_Area` (Above ground living area, in square feet).
+
+---
+
+# Exploratory Data Analysis
+
+For the next few examples, we'll use a smaller version of this dataset, which will help with some illustrations:
+
+```r
+set.seed(12)
+ames_small = ames %&gt;% 
+  sample_n(100) 
+```
+
+.center[
+&lt;img src="09-Predictive_Modeling_files/figure-html/unnamed-chunk-7-1.png" width="45%" /&gt;
+]
+
+---
+
+# Refresher: `lm()`
+
+Let's fit a **simple linear regression model**: `$$\widehat{Sale\_Price}=b_{0}+b_{1}*(Gr\_Liv\_Area)$$`
+
+
+```r
+lm_ames = lm(Sale_Price ~ Gr_Liv_Area, data = ames_small)
+lm_ames
+```
+
+```
+## 
+## Call:
+## lm(formula = Sale_Price ~ Gr_Liv_Area, data = ames_small)
+## 
+## Coefficients:
+## (Intercept)  Gr_Liv_Area  
+##    80727.59        63.06
+```
+
+**Interpretation**: The *predicted* sale price increases by 63.06 dollars for *each additional square foot* of above ground living space. 
+
+---
+
+# Refresher: `lm()`
+
+You might remember `lm()` from a previous statistics class!
+
+- It is probably the most frequently-used modeling function in R, because *linear regression* is the most frequently-used modeling technique!
+
+--
+
+However, there are *many* modeling techniques, and each has a different interface in R. 
+
+**Examples**: 
+- `glm()` for **logistic regression**
+- `rpart()` for **decision trees**
+- `randomForest()` for **random forests**
+
+It can get **challenging** to remember all of these, along with the syntax that each takes!
+
+---
+
+# Parsnip
+
+.center[
+&lt;img src="parsnip_hex.png" width="276" /&gt;
+]
+
+&gt; A common interface is provided to allow users to specify a model without having to remember the different argument names across different functions or computational engines.
+
+---
+
+# Specifying a model with parsnip
+
+First, **chose a model**. 
+
+- All models listed here: [https://www.tidymodels.org/find/parsnip/](https://www.tidymodels.org/find/parsnip/)
+    - **Bookmark this page!**
+
+In this class, we'll mostly use: 
+
+- `linear_reg()`
+- `decision_tree()`
+- `rand_forest()`
+
+---
+
+# Specifying a model with parsnip
+
+Second, **set the engine**. 
+
+- This is related to which *package* or *system* will be used to fit the model. 
+
+--
+
+Combining these two steps, we can *specify* a **linear regression model** using the following:
+
+
+```r
+lm_spec = 
+  linear_reg() %&gt;%
+  set_engine(engine = "lm")
+
+lm_spec
+```
+
+```
+## Linear Regression Model Specification (regression)
+## 
+## Computational engine: lm
+```
+
+---
+
+# Fitting a model with parsnip
+
+Once we **specify** the model, we can use `fit()` to **fit** the model. 
+
+
+```r
+lm_fit = 
+  lm_spec %&gt;% # parsnip model
+  fit(
+    Sale_Price ~ Gr_Liv_Area, # a formula
+    data = ames_small         # dataframe
+  )
+lm_fit
+```
+
+```
+## parsnip model object
+## 
+## Fit time:  2ms 
+## 
+## Call:
+## stats::lm(formula = formula, data = data)
+## 
+## Coefficients:
+## (Intercept)  Gr_Liv_Area  
+##    80727.59        63.06
+```
+
+---
+
+# So what?
+
+Okay, it looks like the `lm()` code is much simpler (at least shorter) than the `parsnip` code. 
+
+
+```r
+lm(Sale_Price ~ Gr_Liv_Area, data = ames_small)
+
+# vs
+
+linear_reg() %&gt;%
+  set_engine(engine = "lm") %&gt;%
+  fit(Sale_Price ~ Gr_Liv_Area, data = ames_small)
+```
+
+*Why wouldn't we just use `lm()`*?!
+
+---
+
+# Benefits of parsnip
+
+If you want, you *can* just use `lm()`, **if you are fitting a linear regression model**. 
+
+- But a model doesn't have to be a **straight line**!
+
+--
+
+Here's what you would use if you are fitting a **regression tree** (more on this later):
+
+
+```r
+tree_fit = 
+  decision_tree() %&gt;%
+  set_engine(engine = "rpart") %&gt;%
+  set_mode(mode = "regression") %&gt;%
+  fit(Sale_Price ~ Gr_Liv_Area, data = ames_small)
+
+tree_fit
+```
+
+**Note**: If there is more than one *mode* for a particular model (i.e., used for either **classification** or **regression**), you need to specify that after `set_engine()`. 
+- Check [https://www.tidymodels.org/find/parsnip/](https://www.tidymodels.org/find/parsnip/)!
+
+---
+
+# Regression Tree
+
+&lt;img src="09-Predictive_Modeling_files/figure-html/unnamed-chunk-14-1.png" width="65%" /&gt;
+
+---
+
+# Random Forest
+
+&lt;img src="09-Predictive_Modeling_files/figure-html/unnamed-chunk-15-1.png" width="65%" /&gt;
+
+---
+
+class: center, middle, frame
+
+# Prediction
+
+---
+
+# Recap
+
+Using the `ames_small` data, we fit a **simple linear regression model** that predicts `Sale_Price` as a function of `Gr_Liv_Area`. 
+
+
+```r
+lm_fit = 
+  linear_reg() %&gt;%
+  set_engine(engine = "lm") %&gt;%
+  fit(Sale_Price ~ Gr_Liv_Area, data = ames_small)
+```
+
+This gives a **fitted model** of the data. 
+
+---
+
+# What is a fitted model?
+
+A **fitted model** is a combination of **data** and a chosen **model** (e.g., linear regression, random forest, etc.)
+
+.center[
+**DATA** (*features*, *target*) + **MODEL** = **FITTED MODEL**
+]
+
+--
+
+Once we **fit** the model, we can use that fitted model to **predict** *new target values* from data. 
+
+
+```r
+lm_pred = lm_fit %&gt;%
+  predict(new_data = ames_small)
+
+lm_pred
+```
+
+--
+
+For convenience, let's append the *predicted values* to the `ames` data (selecting only the two variables of interest):
+
+```r
+ames_pred = ames_small %&gt;%
+  select(Gr_Liv_Area, Sale_Price) %&gt;%
+  mutate(Sale_Price_Pred = lm_pred$.pred)
+```
+
+---
+
+# Predictions
+
+
+```r
+ggplot(ames_pred, aes(x = Gr_Liv_Area, y = Sale_Price)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  geom_point(aes(x = Gr_Liv_Area, y = Sale_Price_Pred), 
+             color = "red", alpha = 0.3) +
+  labs(x = "Above Ground Living Area (in sq. ft.)", y = "Sale Price (in dollars)")  +
+  theme_bw() 
+```
+
+&lt;img src="09-Predictive_Modeling_files/figure-html/unnamed-chunk-19-1.png" width="40%" /&gt;
+
+---
+
+# What are predictions?
+
+Once we **fit** the model, we can use that fitted model to **predict** *new target values* from data. 
+
+.center[
+**DATA** (*features*) + **FITTED MODEL** = **PREDICTIONS**
+]
+
+--
+
+Obviously, a goal of prediction is to make **good** predictions. 
+
+- How can we judge the **quality** of the predictions, or of the fitted model in general?
+
+--
+
+- **residuals**
+
+- **mean absolute error**
+
+- **root mean squared error** (RMSE)
+
+- **confusion matrices**
+
+- many more...
+
+---
+
+# Residuals
+
+For each *observation*, the **residual** is the difference between the *observed* and *predicted* target values: `$$y_{i}-\hat{y}$$`
+
+--
+
+.center[
+&lt;img src="09-Predictive_Modeling_files/figure-html/unnamed-chunk-20-1.png" width="50%" /&gt;
+]
+
+---
+
+# Residuals?
+
+Suppose we want to evaluate the **performance** of a model by quantifying its **error**. 
+
+- We might decide to do this by **summing the residuals**. 
+
+The smaller the *sum*, the smaller the *error* - and the *better the model*. 
+
+- ...Right?
+
+--
+
+`$$\sum_{i=1}^{n}Sale\_Price_{i}-\widehat{Sale\_Price}_{i}$$`
+
+
+
+```r
+sum(residuals(lm_fit$fit))
+```
+
+```
+## [1] 1.077751e-10
+```
+
+The residuals **always** sum to (approximately) **zero**!
+
+---
+
+# Alternatives
+
+We have the same issue if we calculate the **mean error**: `$$\frac{1}{n}\sum_{i=1}^{n}Sale\_Price_{i}-\widehat{Sale\_Price}_{i}$$`
+
+
+```r
+mean(residuals(lm_fit$fit))
+```
+
+```
+## [1] 1.07633e-12
+```
+
+--
+
+Instead let's calculate the **mean absolute error** (MAE)
+
+
+```r
+mean(abs(residuals(lm_fit$fit)))
+```
+
+```
+## [1] 41131.38
+```
+
+Now we're getting somewhere. 
+
+- We converted each residual to **absolute value**, so that the positives and negatives don't cancel each other out. 
+
+---
+
+# Root Mean Squared Error
+
+The *mean absolute error* is one of the simplest and most common metrics used to evaluate models with a **quantitative target**. 
+
+- But this penalizes all residuals equally. 
+
+- In other words, if the model *really misses* a prediction for one value, it's weighted the same as if it *barely misses*. 
+
+--
+
+The **root mean squared error** (RMSE) is perhaps the *most common* metric used in this setting: `$$\text{RMSE}=\sqrt{\frac{1}{n}\sum_{i=1}^{n}(Sale\_Price_{i}-\widehat{Sale\_Price}_{i})^{2}}$$`
+
+---
+
+# Root Mean Squared Error
+
+Luckily, you'll never have to calculate the RMSE **by hand**! 
+
+The `rmse()` function in the `yardstick` package (part of `tidymodels`) calculates the RMSE based on *two columns* in a data frame:
+
+- The **truth**, `\(y_{i}\)`
+
+- The predicted **estimate**, `\(\hat{y}_{i}\)`
+
+--
+
+
+```r
+ames_pred = ames_small %&gt;%
+  select(Gr_Liv_Area, Sale_Price) %&gt;%
+  mutate(Sale_Price_Pred = lm_pred$.pred)
+
+ames_pred %&gt;%
+  rmse(truth = Sale_Price, estimate = Sale_Price_Pred)
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 rmse    standard      59918.
+```
+
+(smaller RMSE is better)
+
+---
+
+# Summary of Steps
+
+1. **DATA** (*features*, *target*) + **MODEL** = **FITTED MODEL**
+
+2. **DATA** (*features*) + **FITTED MODEL** = **PREDICTIONS**
+
+3. **DATA** (*target*) + **PREDICTIONS** = **METRICS**
+
+--
+
+In other words: 
+
+- **fit** your model using **data**,
+
+- calculate **predictions** using model **fit**,
+
+- obtain prediction **metrics** 
+
+---
+
+class: center, middle, frame
+
+# Data Splitting
+
+---
+
+# Modeling Process
+
+Recall: (Good) **machine learning** (ML) models are valued for their ability to
+
+- make **accurate predictions** 
+
+- for **never-before-seen** data
+
+--
+
+
+```r
+# Fit model
+lm_fit = 
+  linear_reg() %&gt;%
+  set_engine(engine = "lm") %&gt;%
+* fit(Sale_Price ~ Gr_Liv_Area, data = ames_small)
+
+# Obtain predictions
+lm_pred = lm_fit %&gt;%
+* predict(new_data = ames_small)
+```
+
+Are we making predictions for **never-before-seen** data?!
+
+---
+
+# Modeling Process: Training and Testing Sets
+
+From Alison Hill's [Introduction to Machine Learning with the Tidyverse](https://education.rstudio.com/blog/2020/02/conf20-intro-ml/) workshop:
+
+.center[
+&lt;img src="data_splitting.png" width="70%" /&gt;
+]
+
+**Training set**: data used to *build the model* (e.g., develop feature sets, compare different models, etc.)
+
+**Testing set**: data the model have not previously seen, used to generate an unbiased estimate of the model's *performance*
+
+- Typically, we split the data into 70% (training) -- 30% (test), or 80% -- 20%. 
+
+---
+
+# Holdout Method
+
+There are different ways to select training and testing sets from data. 
+
+- For now we'll focus on the **holdout method**. 
+
+.center[
+
+
+&lt;img src="holdout.png" width="542" /&gt;
+]
+
+- In the **holdout method**, a number of rows (usually ~70-80%) are **randomly** selected for the training set, and the rest are *held out* for the testing set. 
+
+---
+
+# `initial_split()`
+
+The `initial_split()` function in the `rsample` package splits data randomly (by row) into a single *training* and *testing* set. 
+
+- We can then pass the result from `initial_split()` to `training()` and `testing()` to create the training and testing sets. 
+
+
+```r
+set.seed(12) # Change this to your favorite number!!!
+ames_split = initial_split(ames, prop = 0.7)
+
+ames_train = training(ames_split)
+ames_test = testing(ames_split)
+
+dim(ames_train)
+```
+
+```
+## [1] 2051   81
+```
+
+(Notice that we're using the **complete** `ames` data in `initial_split()`. )
+
+---
+
+# Data Splitting
+
+.pull-left[
+
+```r
+ggplot() + 
+  geom_density(data = ames_train, aes(x = Sale_Price)) + 
+  geom_density(data = ames_test, aes(x = Sale_Price), color = "red") + 
+  labs(x = "Sales Price (in dollars)", y = "Density") + 
+  theme_bw()
+```
+
+![](09-Predictive_Modeling_files/figure-html/unnamed-chunk-30-1.png)&lt;!-- --&gt;
+]
+
+.pull-right[
+As long as the sample size is *sufficiently large*, the distribution of *Y* (`Sale_Price`) will be similar between the training and testing sets. 
+]
+
+---
+
+# Okay, so now what?
+
+Once we have the **training** and **testing** datasets, we can proceed with *training*, *testing*, and *evaluating*. 
+
+Let's illustrate this with a **simple linear regression model**: `$$\widehat{Sale\_Price}=b_{0}+b_{1}*(Gr\_Liv\_Area)$$`
+
+- `Sale_Price`: Sale price of the property (in dollars)
+
+- `Gr_Liv_Area`: Above ground living area (in square feet)
+
+- `\(b_{0}\)` and `\(b_{1}\)` are coefficients estimated from the *training set*
+
+---
+
+# Training Data
+
+![](09-Predictive_Modeling_files/figure-html/unnamed-chunk-31-1.png)&lt;!-- --&gt;
+
+---
+
+# Training Model
+
+**Practice**
+
+Using the **training set**, *train* (fit) a **simple linear regression model** that predicts `Sale_Price` as a function of `Gr_Liv_Area`.
+
+- Save this model as `lm_fit_train`. 
+
+---
+
+# Solution
+
+
+```r
+lm_fit_train = 
+  linear_reg() %&gt;%
+  set_engine(engine = "lm") %&gt;%
+  fit(Sale_Price ~ Gr_Liv_Area, data = ames_train)
+
+lm_fit_train
+```
+
+```
+## parsnip model object
+## 
+## Fit time:  1ms 
+## 
+## Call:
+## stats::lm(formula = formula, data = data)
+## 
+## Coefficients:
+## (Intercept)  Gr_Liv_Area  
+##       12781          112
+```
+
+---
+
+# Predictions
+
+Now let's obtain **predicted values** from the *trained* model, `lm_fit_train`. 
+
+- Remember, we want to see how well `lm_fit_train` predicts *never-before-seen* data. 
+    - What this means is data that the *model* hasn't seen, which would be the **testing set**. 
+
+--
+
+We'll use `predict()` again, except `new_data` will actually be new data!
+
+
+```r
+lm_pred_test = lm_fit_train %&gt;%
+* predict(new_data = ames_test)
+
+dim(lm_pred_test)
+```
+
+```
+## [1] 879   1
+```
+
+---
+
+# Prediction Metrics (RMSE)
+
+Now that we have the **predicted values** for the **testing set**...
+
+- We can see how well the model, fit using the *training set*, predicts the target (`Sale_Price`) from a different set of data.
+
+--
+
+As before, we'll calculate the **root mean squared error**:
+
+```r
+ames_test %&gt;%
+  select(Gr_Liv_Area, Sale_Price) %&gt;% # Optional-can still find RMSE without this
+  mutate(Sale_Price_Pred = lm_pred_test$.pred) %&gt;%
+  rmse(truth = Sale_Price, estimate = Sale_Price_Pred)
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 rmse    standard      56915.
+```
+
+The RMSE for the simple linear regression model is 56,915. 
+- In using this metric to judge model *performance*, let's compare it to *a different model*. 
+
+---
+
+# Practice
+
+Let's train (fit) another linear regression model to predict `Sale_Price`, but let's include *multiple features*.
+
+- `Lot_Area`, `Street`, `House_Style`, `Year_Built`, `Exter_Qual`, `Total_Bsmt_SF`, `Gr_Liv_Area`, `TotRms_AbvGrd`, `Fireplaces`, `Garage_Area`
+
+Add these all together in `fit()` with `+`:
+
+```r
+fit(Sale_Price ~ Lot_Area + Street + House_Style + Year_Built + Exter_Qual + 
+      Total_Bsmt_SF + Gr_Liv_Area + TotRms_AbvGrd + Fireplaces + Garage_Area, 
+    data = ames_train)
+```
+
+**Fill in the blanks**:
+
+- Fit the model on the training set. 
+
+- Obtain predictions on the testing set. 
+
+- Use the predictions to evaluate the model's performance. 
+    - How does this compare to the simple linear regression model?
+
+---
+
+# Solution
+
+
+```r
+lm_fit_mult_train = 
+  linear_reg() %&gt;%
+  set_engine(engine = "lm") %&gt;%
+  fit(Sale_Price ~ Lot_Area + Street + House_Style + Year_Built + Exter_Qual + 
+      Total_Bsmt_SF + Gr_Liv_Area + TotRms_AbvGrd + Fireplaces + Garage_Area, 
+    data = ames_train)
+
+lm_mult_pred = lm_fit_mult_train %&gt;%
+  predict(new_data = ames_test)
+
+ames_test %&gt;%
+  mutate(Sale_Price_Pred = lm_mult_pred$.pred) %&gt;%
+  rmse(truth = Sale_Price, estimate = Sale_Price_Pred)  
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 rmse    standard      34043.
+```
+
+---
+
+# Comparing the models
+
+The RMSE for the *multiple regression model* was 34,043. This is much lower than the RMSE for the *simple regression model*. 
+
+- This isn't surprising, because we added **more information** to the multiple regression model. 
+
+- Therefore, the multiple regression model is "best."
+
+--
+
+**BUT**
+
+Do not forget about **model concerns** when working with *linear regression models*:
+
+- **Multicollinearity**: Sets of features correlated with one another
+
+- **Non-linear relationships**: Between features and target
+
+- **Constant variance among residuals**: Can make a scatterplot of predicted values vs. residuals to check
+
+- among others (Take STAT 229!)
+
+---
+
+# Constant variance among residuals?
+
+
+```r
+ames_test %&gt;%
+  mutate(Sale_Price_Pred = lm_pred_test$.pred, 
+         Residuals = Sale_Price - Sale_Price_Pred) %&gt;%
+  ggplot(aes(x = Sale_Price_Pred, y = Residuals)) + 
+  geom_point(alpha = 0.3) + 
+  labs(x = "Predicted values", y = "Residuals", 
+       title = "Simple Regression Model (y ~ x1)") +
+  theme_bw() 
+```
+
+&lt;img src="09-Predictive_Modeling_files/figure-html/unnamed-chunk-37-1.png" width="40%" /&gt;
+
+---
+
+# Constant variance among residuals?
+
+
+```r
+ames_test %&gt;%
+  mutate(Sale_Price_Pred = lm_mult_pred$.pred, 
+         Residuals = Sale_Price - Sale_Price_Pred) %&gt;%
+  ggplot(aes(x = Sale_Price_Pred, y = Residuals)) + 
+  geom_point(alpha = 0.3) + 
+  labs(x = "Predicted values", y = "Residuals", 
+       title = "Multiple Regression Model (y ~ x1 + x2 + ...)") +
+  theme_bw() 
+```
+
+&lt;img src="09-Predictive_Modeling_files/figure-html/unnamed-chunk-38-1.png" width="40%" /&gt;
+
+---
+
+# Summary
+
+1. **[TRAINING] DATA** (*features*, *target*) + **MODEL** = **FITTED MODEL**
+
+2. **[TESTING] DATA** (*features*) + **FITTED MODEL** = **PREDICTIONS**
+
+3. **[TESTING] DATA** (*target*) + **PREDICTIONS** = **METRICS**
+
+--
+
+
+```r
+# TEMPLATE (with linear regression spec)
+set.seed(12) # Use this for reproducibility!!!
+data_split = initial_split(data, prop = 0.7)
+
+data_train = training(data_split)
+data_test = testing(data_split)
+
+fit = linear_reg() %&gt;%
+  set_engine(engine = "lm") %&gt;%
+* fit(target ~ feature1 + feature2 + ..., data = data_train)
+
+predictions = fit %&gt;%
+* predict(new_data = data_test)
+
+data_test %&gt;%
+  mutate(target_pred = predictions$.pred) %&gt;%
+  rmse(truth = target, estimate = target_pred)
+```
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"countIncrementalSlides": false,
+"highlightLines": true
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
