@@ -15,6 +15,7 @@ output:
 ```{r xaringan-themer, include = FALSE}
 library(xaringanthemer)
 mono_accent(base_color = "#4682B4") #3E8A83?
+options(htmltools.preserve.raw = FALSE)
 ```
 
 ```{r, echo = FALSE}
@@ -27,6 +28,7 @@ knitr::opts_chunk$set(
 library(tidyverse)
 library(tidymodels)
 library(AmesHousing)
+library(countdown)
 ```
 
 <!--
@@ -585,6 +587,10 @@ When constructing a **linear regression model**, you are not limited to a *singl
 
 3. Evaluate the model by calculating its RMSE. 
     - Compare this to the RMSE of the simple linear regression model. Did *predictive performance* improve when adding a second feature?
+    
+```{r, echo = FALSE}
+countdown(minutes = 7)
+```
 
 ---
 
