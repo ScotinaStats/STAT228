@@ -574,6 +574,20 @@ In other words:
 
 ---
 
+# Practice
+
+When constructing a **linear regression model**, you are not limited to a *single feature*. 
+
+1. Using `parsnip` format, construct a **multiple regression model** of `Sale_Price` as a function of `Gr_Liv_Area` and `Year_Built`. Name this model `lm_mult_fit`. 
+    - The `lm()` syntax is `lm(Sale_Price ~ Gr_Liv_Area + Year_Built, data = ames_small)`. 
+
+2. Obtain the **predicted values** of `Sale_Price` from the model. Name this `lm_mult_pred`. 
+
+3. Evaluate the model by calculating its RMSE. 
+    - Compare this to the RMSE of the simple linear regression model. Did *predictive performance* improve when adding a second feature?
+
+---
+
 class: center, middle, frame
 
 # Data Splitting
