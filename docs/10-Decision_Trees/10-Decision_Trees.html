@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>STAT 228: Introduction to Data Science</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Anthony Scotina" />
+    <script src="libs/header-attrs-2.6/header-attrs.js"></script>
+    <link rel="stylesheet" href="my-theme.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# STAT 228: Introduction to Data Science
+## Decision Trees
+### Anthony Scotina
+
+---
+
+
+
+
+
+
+
+
+&lt;!--
+pagedown::chrome_print("~/Dropbox/Teaching/03-Simmons Courses/MATH228-Introduction to Data Science/Lecture Slides/08-Decision_Trees/08-Decision_Trees.html")
+--&gt;
+
+# Needed Packages
+
+
+```r
+library(tidyverse)
+library(tidymodels)
+library(AmesHousing)
+library(rpart.plot)
+library(ggridges)
+```
+
+---
+
+class: middle, center, frame
+
+# Regression Trees
+
+---
+
+# What have we done?
+
+**Predictive modeling**
+
+- Mainly with **linear regression**
+
+--
+
+But the *best* model doesn't have to be a **straight line**
+
+&lt;img src="10-Decision_Trees_files/figure-html/unnamed-chunk-4-1.png" width="50%" /&gt;
+
+---
+
+# Linear vs. Non-linear Model
+
+.pull-left[
+![](10-Decision_Trees_files/figure-html/unnamed-chunk-5-1.png)&lt;!-- --&gt;
+]
+
+.pull-right[
+![](10-Decision_Trees_files/figure-html/unnamed-chunk-6-1.png)&lt;!-- --&gt;
+]
+
+---
+
+# What will we do?
+
+We'll build some happy little **decision trees**!
+
+.center[
+![](https://media.giphy.com/media/IAnFwq468t5kY/giphy.gif)
+]
+
+---
+
+# Decision Trees
+
+A **tree-based model** operates like a *flowchart*. 
+
+- Works by partitioning/splitting the **features** (*X* variables) into smaller, non-overlapping regions with similar **target** values. 
+
+- We obtain **predictions** by fitting a *simpler model* within each region. 
+
+Each split maximizes the **information gain**. 
+
+--
+
+.center[
+&lt;img src="10-Decision_Trees_files/figure-html/unnamed-chunk-7-1.png" width="40%" /&gt;
+]
+
+---
+
+# Decision Trees in R
+
+.center[
+&lt;img src="tidymodels_hex.png" width="15%" /&gt;&lt;img src="parsnip_hex.png" width="15%" /&gt;
+]
+
+In `tidymodels`:
+
+
+```r
+# 1: Split data into TRAINING and TESTING sets 
+set.seed(12) # Use this for reproducibility!!!
+data_split = initial_split(data, prop = 0.7)
+
+data_train = training(data_split)
+data_test = testing(data_split)
+
+# 2: Fit MODEL on TRAINING set
+fit = model_type() %&gt;%
+  set_engine(engine = "...") %&gt;%
+  set_mode(mode = "...") %&gt;% # Will need this sometimes
+  fit(y ~ x1 + x2 + ..., data = data_train)
+```
+
+**List of models, engines, modes**: [HERE](https://www.tidymodels.org/find/parsnip/)
+
+---
+
+# Decision Trees in R
+
+For a simple **decision tree**, we'll use the `rpart` engine. 
+- This employs an algorithm called the **classification and regression tree (CART)** algorithm.
+
+- For **regression** vs. **classification** mode, this depends on whether your target is *numerical* or *categorical*. (`Sale_Price` is numerical.)
+
+--
+
+
+```r
+set.seed(12) # Use this for reproducibility!!!
+ames_split = initial_split(ames, prop = 0.7)
+
+ames_train = training(ames_split)
+ames_test = testing(ames_split)
+```
+
+--
+
+First we'll look at **one feature** (`Gr_Liv_Area`):
+
+```r
+tree_fit = 
+* decision_tree() %&gt;%
+  set_engine(engine = "rpart") %&gt;%
+  set_mode(mode = "regression") %&gt;%
+  fit(Sale_Price ~ Gr_Liv_Area, data = ames_train)
+```
+
+---
+
+# CART Output
+
+
+```r
+tree_fit
+```
+
+```
+## parsnip model object
+## 
+## Fit time:  5ms 
+## n= 2051 
+## 
+## node), split, n, deviance, yval
+##       * denotes terminal node
+## 
+##  1) root 2051 1.323573e+13 180856.4  
+##    2) Gr_Liv_Area&lt; 1477.5 1083 1.572568e+12 137632.6  
+##      4) Gr_Liv_Area&lt; 1185.5 601 4.979260e+11 120547.6 *
+##      5) Gr_Liv_Area&gt;=1185.5 482 6.804688e+11 158935.7 *
+##    3) Gr_Liv_Area&gt;=1477.5 968 7.376037e+12 229215.4  
+##      6) Gr_Liv_Area&lt; 2323 825 3.715342e+12 212141.9  
+##       12) Gr_Liv_Area&lt; 1814 527 1.702934e+12 198932.0 *
+##       13) Gr_Liv_Area&gt;=1814 298 1.757812e+12 235503.1 *
+##      7) Gr_Liv_Area&gt;=2323 143 2.032761e+12 327716.1  
+##       14) Gr_Liv_Area&lt; 2673.5 92 8.188231e+11 292857.8 *
+##       15) Gr_Liv_Area&gt;=2673.5 51 9.004881e+11 390597.9 *
+```
+
+---
+
+# Making sense of CART output
+
+
+```r
+tree_fit
+```
+
+The output gives information about the different splits in the tree. 
+
+We start with 2051 observations at the **root node**, with an overall mean `Sale_Price` of 180,856.4.
+
+--
+
+Because there's only *one feature* (`Gr_Liv_Area`), we split on it. 
+
+- Each amount of `Gr_Liv_Area` on which we split gives the largest reduction in SSE, the *residual sum of squares*.
+
+- This is marked in the output as the `deviance`, which is the other number you see in each row. 
+
+---
+
+# `rpart.plot()`
+
+Because this is a decision **TREE**, it might be easier to look at the results if they looked like... **A TREE**. 
+- We can do this with `rpart.plot()`
+
+
+```r
+rpart.plot(tree_fit$fit, roundint = FALSE)
+```
+
+&lt;img src="10-Decision_Trees_files/figure-html/unnamed-chunk-14-1.png" width="45%" /&gt;
+
+---
+
+# Prediction
+
+Remember, **machine learning** (ML) models are valued for their ability to
+
+- make **accurate predictions** for **never-before-seen** data
+
+We can generate *predictions* and calculate a prediction *metric* just like we did with linear regression.
+
+--
+
+
+```r
+tree_pred = tree_fit %&gt;%
+* predict(new_data = ames_test)
+
+ames_test %&gt;%
+  mutate(Sale_Price_Pred = tree_pred$.pred) %&gt;%
+  rmse(truth = Sale_Price, estimate = Sale_Price_Pred)  
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 rmse    standard      58430.
+```
+
+- The RMSE for the **CART model** with *one feature* was 58,430. 
+- The RMSE for the **simple linear regression model** was 56,915. 
+
+---
+
+# CART (with one feature)
+
+![](10-Decision_Trees_files/figure-html/unnamed-chunk-16-1.png)&lt;!-- --&gt;
+
+---
+
+# Code from the last plot
+
+(If you're interested in replicating it!)
+
+
+```r
+ggplot() + 
+  geom_point(data = ames_test, aes(x = Gr_Liv_Area, y = Sale_Price), 
+             alpha = 0.2) +
+  geom_line(data = price_pred,  aes(x = Gr_Liv_Area, y = pred), 
+            color = "hotpink") + 
+  theme_bw() + 
+  labs(x = "Above Ground Living Area (in sq. ft.)", 
+       y = "Sale Price (in dollars)", 
+       title = "Regression Tree (Testing Set)") +
+  scale_y_continuous(labels = scales::comma) + 
+  scale_x_continuous(labels = scales::comma)
+```
+
+---
+
+# CART with Multiple Features
+
+Now let's fit a decision tree with **multiple features**.
+
+
+```r
+tree_fit = 
+* decision_tree() %&gt;%
+  set_engine(engine = "rpart") %&gt;%
+  set_mode(mode = "regression") %&gt;%
+  fit(Sale_Price ~ Lot_Area + Street + House_Style + 
+        Year_Built + Exter_Qual + Total_Bsmt_SF + 
+        Gr_Liv_Area + TotRms_AbvGrd + Fireplaces + 
+        Garage_Area, 
+    data = ames_train)
+```
+
+---
+
+# CART Output (does not look nice)
+
+
+```r
+tree_fit
+```
+
+```
+## parsnip model object
+## 
+## Fit time:  30ms 
+## n= 2051 
+## 
+## node), split, n, deviance, yval
+##       * denotes terminal node
+## 
+##  1) root 2051 1.323573e+13 180856.4  
+##    2) Exter_Qual=Fair,Typical 1275 2.301647e+12 141921.7  
+##      4) Gr_Liv_Area&lt; 1376.5 757 6.872655e+11 123819.2  
+##        8) Total_Bsmt_SF&lt; 909 388 2.983219e+11 108514.3 *
+##        9) Total_Bsmt_SF&gt;=909 369 2.024934e+11 139912.2 *
+##      5) Gr_Liv_Area&gt;=1376.5 518 1.003785e+12 168376.6  
+##       10) Gr_Liv_Area&lt; 2663.5 509 8.122961e+11 166063.4 *
+##       11) Gr_Liv_Area&gt;=2663.5 9 3.473214e+10 299200.0 *
+##    3) Exter_Qual=Excellent,Good 776 5.825640e+12 244827.8  
+##      6) Garage_Area&lt; 664 525 1.456920e+12 209325.8  
+##       12) Gr_Liv_Area&lt; 1493 226 2.739801e+11 178098.7 *
+##       13) Gr_Liv_Area&gt;=1493 299 7.959848e+11 232928.9  
+##         26) Total_Bsmt_SF&lt; 1010.5 140 1.689914e+11 203924.8 *
+##         27) Total_Bsmt_SF&gt;=1010.5 159 4.055198e+11 258467.1 *
+##      7) Garage_Area&gt;=664 251 2.322968e+12 319085.0  
+##       14) Total_Bsmt_SF&lt; 1841 203 9.842592e+11 295245.0  
+##         28) Gr_Liv_Area&lt; 2293 139 3.520214e+11 269461.2 *
+##         29) Gr_Liv_Area&gt;=2293 64 3.391316e+11 351244.2 *
+##       15) Total_Bsmt_SF&gt;=1841 48 7.353981e+11 419908.3  
+##         30) Gr_Liv_Area&lt; 2215 28 8.399553e+10 365917.0 *
+##         31) Gr_Liv_Area&gt;=2215 20 4.555105e+11 495496.2 *
+```
+
+
+---
+
+# Making sense of CART output
+
+
+```r
+tree_fit
+```
+
+The output gives information about the different splits in the tree. 
+
+We start with 2051 observations at the **root node**, with an overall mean `Sale_Price` of 180,856.4.
+
+--
+
+The first variable we *split* on is `Exter_Qual` (quality of the material on the exterior of the property). 
+- This is the first variable which gives the largest reduction in SSE, the *residual sum of squares*.
+- This is marked in the output as the `deviance`, which is the other number you see in each row. 
+    
+--
+
+All observations with `Exter_Qual %in% c("Fair", "Typical")` go to the second *branch*. 
+- This group has a mean `Sale_Price` of 141,921.7 (you can check this with a `filter()` `and summarize()` if you want)
+
+---
+
+# `rpart.plot()`
+
+
+```r
+rpart.plot(tree_fit$fit, roundint = FALSE)
+```
+
+&lt;img src="10-Decision_Trees_files/figure-html/unnamed-chunk-21-1.png" width="50%" /&gt;
+
+---
+
+# Prediction
+
+Remember, **machine learning** (ML) models are valued for their ability to
+
+- make **accurate predictions** for **never-before-seen** data
+
+We can generate *predictions* and calculate a prediction *metric* just like we did with linear regression.
+
+--
+
+
+```r
+tree_pred = tree_fit %&gt;%
+* predict(new_data = ames_test)
+
+ames_test %&gt;%
+  mutate(Sale_Price_Pred = tree_pred$.pred) %&gt;%
+  rmse(truth = Sale_Price, estimate = Sale_Price_Pred)  
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 rmse    standard      40320.
+```
+
+- The RMSE for the **CART model** with *multiple features* was 40,320. 
+- The RMSE for the **multiple regression model** was 34,043. 
+
+---
+
+# A Note on Predictions with Decision Tree
+
+The *predicted values* for observations in different parts of the tree will be **identical**. 
+
+
+```r
+ames_test %&gt;%
+  mutate(Sale_Price_Pred = tree_pred$.pred) %&gt;%
+  filter(Exter_Qual %in% c("Fair", "Typical"), Gr_Liv_Area &lt; 1377, 
+         Total_Bsmt_SF &lt; 909) %&gt;%
+  select(Sale_Price, Sale_Price_Pred)
+```
+
+This pipeline selects (from the *testing set*) all observations that fall in the left-most **leaf** of the tree. 
+
+- `Exter_Qual %in% c("Fair", "Typical")`, 
+
+- `Gr_Liv_Area &lt; 1377`, 
+
+- `Total_Bsmt_SF &lt; 909`
+
+---
+
+class: middle, center, frame
+
+# Classification Trees
+
+---
+
+# Motivating Example
+
+From [Julia Silge](https://supervised-ml-course.netlify.com/chapter2):
+
+&gt; [Stack Overflow](https://stackoverflow.com/) is the world's largest online community for developers, and you have probably used it to find an answer to a programming question. 
+
+One question in the annual Stack Overflow **developer survey** asks whether or not the developer works **remotely**. 
+
+- Whether or not the developer works **remotely** is a **binary, categorical** variable. 
+
+We'll use the `stackoverflow` data from the course webpage:
+
+
+
+
+```r
+View(stackoverflow)
+```
+
+---
+
+# Data Cleaning
+
+`parsnip` models don't like `character` target variables. If our target is **categorical**, we must make sure that it is a `factor` in R:
+
+
+```r
+stackoverflow = stackoverflow %&gt;%
+  mutate(remote = factor(remote))
+```
+
+---
+
+# Exploratory Data Analysis
+
+First, let's see what features might be *predictive* of `remote`:
+
+
+```r
+ggplot(stackoverflow, aes(x = salary, y = remote)) + 
+  geom_density_ridges() + 
+  labs(x = "Yearly Salary (in dollars)", y = "") + 
+  scale_x_continuous(label = scales::comma) + 
+  theme_bw() 
+```
+
+&lt;img src="10-Decision_Trees_files/figure-html/unnamed-chunk-27-1.png" width="40%" /&gt;
+
+---
+
+# Exploratory Data Analysis
+
+
+```r
+ggplot(stackoverflow, aes(x = company_size_number_cat, 
+                          fill = company_size_number_cat)) + 
+  geom_bar() + 
+  labs(x = "", y = "") + 
+  coord_flip() + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+&lt;img src="10-Decision_Trees_files/figure-html/unnamed-chunk-28-1.png" width="40%" /&gt;
+
+---
+
+# Exploratory Data Analysis
+
+We'll use `group_by()` and `summarize()` to calculate the **percent** `Remote` within each company size category, and then pass this to `geom_col()`:
+
+
+```r
+stackoverflow %&gt;%
+  group_by(company_size_number_cat) %&gt;%
+  summarize(percent_remote = (sum(remote == "Remote")/n())*100) %&gt;%
+  ggplot(aes(x = company_size_number_cat, y = percent_remote, 
+             fill = company_size_number_cat)) + 
+  geom_col() + 
+  labs(x = "", y = "Percent Remote") + 
+  coord_flip() + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+---
+
+# Categorical Target
+
+Because the target in this analysis is `remote`, we're predicting something *slightly different* from when we were building **linear regression models** or **regression trees**. 
+
+In a **classification model**, we're taking a set of *features* and converting them to a **probability**. 
+
+- This is a number `\(p\in (0,1)\)` (in other words, a *probability* **must be between 0 and 1**).
+
+--
+
+In general if the **probability of an event** is closer to 1, that event is more likely to occur. 
+
+**Examples**: 
+
+- `\(P(\text{fair coin lands heads})=0.50\)`
+
+- `\(P(\text{Anthony will use a pie chart unironically})=0.00000000001\)`
+
+---
+
+# Categorical Target
+
+
+```r
+stackoverflow %&gt;%
+  count(remote)
+```
+
+```
+## # A tibble: 2 x 2
+##   remote         n
+##   &lt;fct&gt;      &lt;int&gt;
+## 1 Not remote   575
+## 2 Remote       575
+```
+
+Because the actual values of the target are *binary*, the **predicted probabilites** generated from the model will correspond to the probability of the "success level."
+- You can pre-set this, but in our case `success = "Remote"`. 
+
+--
+
+From MDSR by Baumer et al.:
+&gt; Whereas regression models have a quantitative response variable (and can thus be visualized as a geometric surface), classification models have a categorical response (and are often visualized as a discrete surface (i.e., a tree)).
+
+---
+
+# Practice
+
+We can fit a **classification tree** in R using `tidymodels` exactly how we fit a *regression tree*. 
+
+1. First,  **split** the data into **training** and **testing** sets.
+
+2. Using the split data, train a **CART-based** classification model with the formula `remote ~ salary + company_size_number_cat + years_coded_job`. 
+    - Hint: The **mode** in `set_mode()` will be different here because the target is *categorical*. 
+    - Check the [details](https://www.tidymodels.org/find/parsnip/)!
+
+---
+
+# Solution
+
+
+```r
+set.seed(12) # Use this for reproducibility!!!
+stack_split = initial_split(stackoverflow, prop = 0.7)
+
+stack_train = training(stack_split)
+stack_test = testing(stack_split)
+```
+
+
+```r
+stack_fit = decision_tree() %&gt;%
+  set_engine(engine = "rpart") %&gt;%
+* set_mode(mode = "classification") %&gt;%
+  fit(remote ~ salary + company_size_number_cat + years_coded_job, 
+      data = stack_train)
+```
+
+---
+
+# Classification Trees in R (Fit Output)
+
+
+```r
+stack_fit
+```
+
+```
+## parsnip model object
+## 
+## Fit time:  10ms 
+## n= 805 
+## 
+## node), split, n, loss, yval, (yprob)
+##       * denotes terminal node
+## 
+##  1) root 805 398 Remote (0.49440994 0.50559006)  
+##    2) salary&lt; 89500 498 188 Not remote (0.62248996 0.37751004)  
+##      4) company_size_number_cat=1,000 to 4,999 employees,10,000 or more employees,100 to 499 employees,20 to 99 employees,5,000 to 9,999 employees,500 to 999 employees 375 119 Not remote (0.68266667 0.31733333)  
+##        8) salary&lt; 71375 291  83 Not remote (0.71477663 0.28522337) *
+##        9) salary&gt;=71375 84  36 Not remote (0.57142857 0.42857143)  
+##         18) company_size_number_cat=10,000 or more employees,100 to 499 employees,500 to 999 employees 48  14 Not remote (0.70833333 0.29166667) *
+##         19) company_size_number_cat=1,000 to 4,999 employees,20 to 99 employees,5,000 to 9,999 employees 36  14 Remote (0.38888889 0.61111111)  
+##           38) years_coded_job&gt;=9 18   6 Not remote (0.66666667 0.33333333) *
+##           39) years_coded_job&lt; 9 18   2 Remote (0.11111111 0.88888889) *
+##      5) company_size_number_cat=10 to 19 employees,Fewer than 10 employees 123  54 Remote (0.43902439 0.56097561)  
+##       10) years_coded_job&lt; 17 112  53 Remote (0.47321429 0.52678571)  
+##         20) salary&gt;=12826.61 97  47 Not remote (0.51546392 0.48453608)  
+##           40) years_coded_job&lt; 6.5 62  25 Not remote (0.59677419 0.40322581) *
+##           41) years_coded_job&gt;=6.5 35  13 Remote (0.37142857 0.62857143) *
+##         21) salary&lt; 12826.61 15   3 Remote (0.20000000 0.80000000) *
+##       11) years_coded_job&gt;=17 11   1 Remote (0.09090909 0.90909091) *
+##    3) salary&gt;=89500 307  88 Remote (0.28664495 0.71335505) *
+```
+
+---
+
+# Classification Trees in R (Fit Output)
+
+
+```r
+stack_fit
+```
+
+The *structure* of the output is the same, but there are some differences since the target is *categorical*. 
+
+We start with 805 observations at the **root node**, 398 of whom work `Remote` (corresponding to a *proportion* of 0.49440994).
+
+--
+
+The first feature we *split* on is `salary`. 
+- Of those who make *less than 89,500 dollars*, 188 (62.2%) are `Not remote`. 
+- Of those who make *more than 89,500 dollars*, 88 (28.7%) are `Remote`. 
+
+---
+
+# `rpart.plot()`
+
+
+```r
+rpart.plot(stack_fit$fit, roundint = FALSE)
+```
+
+&lt;img src="10-Decision_Trees_files/figure-html/unnamed-chunk-35-1.png" width="50%" /&gt;
+
+---
+
+# Predictions
+
+As before, we'll use `predict()` with the **testing** set to generate predictions. 
+
+
+```r
+stack_pred = stack_fit %&gt;%
+* predict(new_data = stack_test)
+
+head(stack_pred, 5)
+```
+
+```
+## # A tibble: 5 x 1
+##   .pred_class
+##   &lt;fct&gt;      
+## 1 Remote     
+## 2 Not remote 
+## 3 Remote     
+## 4 Not remote 
+## 5 Not remote
+```
+
+Rather than predict some *numerical* target value, the model predicts whether or not each person in the *testing* set is **remote**. 
+
+- The column is also named `.pred_class` instead of `.pred`. 
+
+---
+
+# Predictions
+
+
+```r
+stack_test %&gt;%
+  select(remote) %&gt;%
+  mutate(remote_pred = stack_pred$.pred_class) %&gt;%
+  head(5)
+```
+
+```
+## # A tibble: 5 x 2
+##   remote remote_pred
+##   &lt;fct&gt;  &lt;fct&gt;      
+## 1 Remote Remote     
+## 2 Remote Not remote 
+## 3 Remote Remote     
+## 4 Remote Not remote 
+## 5 Remote Not remote
+```
+
+Of course, each observation in the *testing* set is already a Stack Overflow employee who either works *remotely* or *not remotely*.
+- One way to judege the **accuracy** of a classification model is to calculate the proportion of times the model *correctly predicted* each target observation's *class*. 
+
+---
+
+# Confusion Matrix
+
+A **confusion matrix** (yes, it's actually called that) is a *truth table*. It counts the number of times our model made the correct predictions. 
+
+- There are two different types of *mistakes* this model can make: (i) predicting `Remote` when the observation was really `Not Remote`; (ii) predicting `Not Remote` when the observation was really `Remote`. 
+
+--
+
+.center[
+&lt;img src="yardstick_hex.png" width="160" /&gt;
+]
+
+We can use the `conf_mat()` function from the `yardstick` package to obtain the **confusion matrix**. 
+
+- This takes the same input as `rmse()`, so we can use a similar set-up here. 
+
+---
+
+# Confusion Matrix
+
+**RMSE for regression tree**:
+
+
+```r
+ames_test %&gt;%
+  mutate(Sale_Price_Pred = tree_pred$.pred) %&gt;%
+  rmse(truth = Sale_Price, estimate = Sale_Price_Pred)  
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 rmse    standard      40320.
+```
+
+--
+
+**Confusion matrix for classification tree**:
+
+
+```r
+stack_test %&gt;%
+  mutate(remote_pred = stack_pred$.pred_class) %&gt;%
+  conf_mat(truth = remote, estimate = remote_pred)
+```
+
+```
+##             Truth
+## Prediction   Not remote Remote
+##   Not remote        117     59
+##   Remote             60    109
+```
+
+---
+
+# Confusion Matrix (heatmap)
+
+
+```r
+stack_test %&gt;%
+  mutate(remote_pred = stack_pred$.pred_class) %&gt;%
+  conf_mat(truth = remote, estimate = remote_pred) %&gt;%
+  autoplot(type = "heatmap")
+```
+
+&lt;img src="10-Decision_Trees_files/figure-html/unnamed-chunk-41-1.png" width="50%" /&gt;
+
+---
+
+# Interpreting Confusion Matrix
+
+.center[
+&lt;img src="10-Decision_Trees_files/figure-html/unnamed-chunk-42-1.png" width="30%" /&gt;
+]
+
+The model *falsely predicted* that `60` people worked `Remote` when they were *actually* `Not Remote`.
+- We call this a **false positive**. 
+
+--
+
+The model *falsely predicted* that `59` people worked `Not Remote` when they were *actually* `Remote`.
+- We call this a **false negative**
+
+---
+
+# Interpreting Confusion Matrix
+
+.center[
+&lt;img src="10-Decision_Trees_files/figure-html/unnamed-chunk-43-1.png" width="30%" /&gt;
+]
+
+One measure of **accuracy** for a *classification tree* is the *proportion* of **true positives** and **true negatives** out of the total number of predictions by the model. 
+
+- In this model, `\((117+109)/(117+109+60+59)\)` predictions were *correct*. 
+
+
+```r
+(117+109)/(117+109+60+59)
+```
+
+```
+## [1] 0.6550725
+```
+
+---
+
+# Accuracy
+
+Alternatively, we could use the `accuracy()` function from `yardstick`, which calculates the proportion of correct predictions obtained from the confusion matrix. 
+
+
+```r
+stack_test %&gt;%
+  mutate(remote_pred = stack_pred$.pred_class) %&gt;%
+  accuracy(truth = remote, estimate = remote_pred)
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric  .estimator .estimate
+##   &lt;chr&gt;    &lt;chr&gt;          &lt;dbl&gt;
+## 1 accuracy binary         0.655
+```
+
+---
+
+# Practice
+
+Using the `diamonds` dataset, build a **classification tree** that predicts `cut` using the following features: `carat`, `color`, `depth`, `price`. 
+
+1. Split the data into **training** and **testing** sets. 
+
+2. Fit the model. 
+
+3. Obtain the set of *predictions* and the **confusion matrix**. 
+
+4. Calculate the model's **accuracy**. 
+
+---
+
+# Solution (Part 1)
+
+
+```r
+set.seed(12)
+diamonds_split = initial_split(diamonds, prop = 0.7)
+
+diamonds_train = training(diamonds_split)
+diamonds_test = testing(diamonds_split)
+```
+
+
+```r
+diamonds_fit = decision_tree() %&gt;%
+  set_engine(engine = "rpart") %&gt;%
+  set_mode(mode = "classification") %&gt;%
+  fit(cut ~ carat + color + depth + price, 
+      data = diamonds_train)
+
+diamonds_pred = diamonds_fit %&gt;%
+  predict(new_data = diamonds_test)
+```
+
+---
+
+# Solution (Part 2)
+
+
+```r
+diamonds_test %&gt;%
+  mutate(cut_pred = diamonds_pred$.pred_class) %&gt;%
+  conf_mat(truth = cut, estimate = cut_pred)
+```
+
+```
+##            Truth
+## Prediction  Fair Good Very Good Premium Ideal
+##   Fair       343   49         5       0     4
+##   Good        57  704       127       0    10
+##   Very Good   10  356      1061     294   249
+##   Premium     32  219       713    1092   411
+##   Ideal       27  160      1702    2741  5816
+```
+
+
+```r
+diamonds_test %&gt;%
+  mutate(cut_pred = diamonds_pred$.pred_class) %&gt;%
+  accuracy(truth = cut, estimate = cut_pred)
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric  .estimator .estimate
+##   &lt;chr&gt;    &lt;chr&gt;          &lt;dbl&gt;
+## 1 accuracy multiclass     0.557
+```
+
+---
+
+# Other Metrics
+
+
+```
+##             Truth
+## Prediction   Not remote Remote
+##   Not remote        117     59
+##   Remote             60    109
+```
+
+**Sensitivity**: The *true positive rate*
+
+- Out of all **true positives**, how many did you predict *correctly*?
+    - Sensitivity = `\(109/(59+109)=0.65\)`
+
+--
+
+**Specificity**: The *true negative rate*
+
+- Out of all **true negatives**, how many did you predict *correctly*?
+    - Specificity = `\(117/(117+60)=0.66\)`
+    
+--
+
+You can also use the `sens()` and `spec()` functions similarly to how we use `conf_mat()`, `rmse()`, and `accuracy()`. 
+
+---
+
+# ROC Curve
+
+Stands for **Receiver Operating Characteristic** Curve. 
+
+- Illustrates the *predictive abilities* of a binary classification model. 
+
+**Note**: Make sure the predictions are `numeric` before piping to `roc_curve()`. 
+
+
+```r
+stack_test %&gt;%
+* mutate(remote_pred = as.numeric(stack_pred$.pred_class)) %&gt;%
+* roc_curve(truth = remote, estimate = remote_pred) %&gt;%
+  autoplot()
+```
+
+---
+
+# ROC Curve
+
+&lt;img src="10-Decision_Trees_files/figure-html/unnamed-chunk-52-1.png" width="55%" /&gt;
+
+The diagonal represents **random guessing**. 
+
+- The greater the *area* **under** the ROC curve, the better the classifier. 
+
+
+
+
+
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"countIncrementalSlides": false,
+"highlightLines": true
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
