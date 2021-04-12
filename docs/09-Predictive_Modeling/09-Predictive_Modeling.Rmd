@@ -740,7 +740,7 @@ Let's illustrate this with a **simple linear regression model**: $$\widehat{Sale
 
 # Training Data
 
-```{r, echo = FALSE, dpi = 300}
+```{r, echo = FALSE, dpi = 300, out.width = "60%"}
 ggplot(ames_train, aes(x = Gr_Liv_Area, y = Sale_Price)) + 
   geom_point(size = 1.5, alpha = 0.4) + 
   geom_smooth(method = "lm", se = FALSE) + 
