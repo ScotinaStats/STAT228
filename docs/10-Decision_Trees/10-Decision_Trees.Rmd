@@ -285,7 +285,7 @@ ames_test %>%
 
 # CART (with one feature)
 
-```{r, dpi = 300, echo = FALSE}
+```{r, dpi = 300, echo = FALSE, out.width = "60%"}
 ggplot() + 
   geom_point(data = ames_test, aes(x = Gr_Liv_Area, y = Sale_Price), 
              alpha = 0.2) +
