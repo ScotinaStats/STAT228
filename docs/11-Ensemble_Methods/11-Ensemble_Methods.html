@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>STAT 228: Introduction to Data Science</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Anthony Scotina" />
+    <script src="libs/header-attrs-2.6/header-attrs.js"></script>
+    <link rel="stylesheet" href="my-theme.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# STAT 228: Introduction to Data Science
+## Ensemble Methods
+### Anthony Scotina
+
+---
+
+
+
+
+
+
+
+
+&lt;!--
+pagedown::chrome_print("~/Dropbox/Teaching/03-Simmons Courses/MATH228-Introduction to Data Science/Lecture Slides/09-Ensemble_Methods/09-Ensemble_Methods.html")
+--&gt;
+
+# Needed Packages
+
+
+```r
+library(tidyverse)
+library(tidymodels)
+library(AmesHousing)
+library(rpart.plot)
+library(ggridges)
+library(nycflights13)
+library(vip)
+```
+
+---
+
+class: center, middle
+
+# Bootstrap Resampling
+
+---
+
+# Populations
+
+Suppose we are asked to develop a model for **arrival delay** of flights heading to Boston (Logan Airport) from New York City. 
+
+In practice, this would involve modeling **sample data** from a **population**. 
+
+- To illustrate some of the techniques that follow, we'll consider data from `nycflights13` as our *population*:
+    
+    ```r
+    bos = flights %&gt;%
+      filter(dest == "BOS" &amp; !is.na(arr_delay))
+    ```
+    
+--
+
+**Note**: If we actually had the *population* of *all* flights from NYC to Boston, we could just look up information on delayed flights, rather than construct a model!
+
+---
+
+# Sample
+
+We'll work with a **sample** of `\(n=15\)` from `bos`:
+
+```r
+set.seed(12)
+bos_15 = bos %&gt;%
+  sample_n(15)
+```
+
+--
+
+Some **summary statistics**:
+
+```r
+bos_15 %&gt;%
+  group_by(origin) %&gt;%
+  summarize(avg_arr_delay = mean(arr_delay), 
+            sd_arr_delay = sd(arr_delay),
+            n_flights = n())
+```
+
+```
+## # A tibble: 3 x 4
+##   origin avg_arr_delay sd_arr_delay n_flights
+##   &lt;chr&gt;          &lt;dbl&gt;        &lt;dbl&gt;     &lt;int&gt;
+## 1 EWR             54           74.7         6
+## 2 JFK             -4           18.5         6
+## 3 LGA             16.3         59.5         3
+```
+
+
+---
+
+# Hypothesis
+
+**As departure delay increases, so does the arrival delay!**
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-7-1.png" width="50%" /&gt;
+
+---
+
+# Hypothesis
+
+**As departure delay increases, so does the arrival delay!**
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-8-1.png" width="50%" /&gt;
+
+---
+
+# Hypothesis
+
+**As departure delay increases, so does the arrival delay!**
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-9-1.png" width="50%" /&gt;
+
+---
+
+# What if...
+
+`bos_15` wasn't my sample? 🤔🤔🤔
+
+--
+
+What if it was *this*:
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-10-1.png" width="50%" /&gt;
+
+---
+
+# What if...
+
+`bos_15` wasn't my sample? 🤔🤔🤔
+
+Or *this*:
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-11-1.png" width="50%" /&gt;
+
+---
+
+# Random Samples
+
+The previous two samples were *biased* and **not random**. 
+
+- Take **random samples** (like `bos_15`). 
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-12-1.png" width="50%" /&gt;
+
+---
+
+# Random Samples
+
+The previous two samples were *biased* and **not random**. 
+
+- Take **random samples** (like `bos_15`). 
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-13-1.png" width="50%" /&gt;
+
+---
+
+# Many Random Samples
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-14-1.png" width="50%" /&gt;
+
+---
+
+# Many Random Samples 
+
+- (with flexible models)
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-15-1.png" width="50%" /&gt;
+
+---
+
+# Sampling Variability
+
+If sampling is done at **random**, then the sample is *unbiased* and *representative* of the population.
+
+In most cases: 
+
+- We don't have access to *population data*, and...
+- We don't have access to *more than one sample*!
+
+--
+
+How do we use a **single sample** to get some idea of how other samples might **vary**?
+
+- **Bootstrapping**
+
+---
+
+# Bootstrapping
+
+A **bootstrap sample** is a sample taken from the **SAMPLE** **with replacement**. 
+
+- After an observation is randomly selected for inclusion in the bootstrap sample, it can be randomly selected *again*.
+
+--
+
+[(Boehmke and Greenwell, 2020)](https://bradleyboehmke.github.io/HOML/)
+
+.center[
+&lt;img src="bootstrap.png" width="324" /&gt;
+]
+
+--
+
+**Two Rules**:
+
+1. A **bootstrap sample** must be the *same size as the original sample*. 
+
+2. A **bootstrap sample** must contain only the observations that were included in the original sample. 
+
+---
+
+# Bootstrapping
+
+When using the bootstrap, it might help to think of our original sample *as if* it were the population. 
+
+- If the sample is *representative*, then the population might as well just be tons of copies of the original sample. 
+
+--
+
+**Example**:
+
+Meet some "data":
+.center[
+&lt;img src="ac_beau.jpeg" width="80" /&gt;&lt;img src="ac_diva.jpeg" width="80" /&gt;&lt;img src="ac_rod.jpeg" width="79" /&gt;&lt;img src="ac_pango.jpeg" width="81" /&gt;&lt;img src="ac_goose.jpeg" width="80" /&gt;&lt;img src="ac_dora.jpeg" width="79" /&gt;
+]
+
+---
+
+# How Bootstrapping Works
+
+**One Sample** `\(\implies\)` *One Sample Statistic*
+
+.center[
+&lt;img src="bootstrap1.png" width="280" /&gt;
+]
+
+---
+
+# How Bootstrapping Works
+
+**One Sample** `\(\implies\)` **Bootstrap Sample** `\(\implies\)` *Bootstrap Statistic*
+
+.center[
+&lt;img src="bootstrap2.png" width="548" /&gt;
+]
+
+---
+
+# How Bootstrapping Works
+
+**One Sample** `\(\implies\)` **Bootstrap Samples** `\(\implies\)` *Bootstrap Statistics*
+
+.center[
+&lt;img src="bootstrap3.png" width="540" /&gt;
+]
+
+---
+
+# How Bootstrapping Works
+
+**One Sample** `\(\implies\)` **Many Bootstrap Samples** `\(\implies\)` *Many Bootstrap Statistics*
+
+.center[
+&lt;img src="bootstrap4.png" width="541" /&gt;
+]
+
+---
+
+# Why Bootstrapping Works
+
+If the sample is **representative**, the *population* might as well be *many copies of the sample*. 
+
+.center[
+&lt;img src="bootstrap5.png" width="502" /&gt;
+]
+
+---
+
+# Why Bootstrapping Works
+
+If the sample is **representative**, the *population* might as well be *many copies of the sample*. 
+
+.center[
+&lt;img src="bootstrap6.png" width="616" /&gt;
+]
+
+---
+
+# Bootstrapped Samples
+
+Taken from `bos_15`...
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-24-1.png" width="60%" /&gt;
+
+---
+
+# Bootstrapped Samples
+
+Taken from `bos_15`...
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-25-1.png" width="60%" /&gt;
+
+---
+
+# Bootstrapped Samples
+
+Taken from `bos_15`...
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-26-1.png" width="60%" /&gt;
+
+---
+
+# My Code (if interested)
+
+
+```r
+set.seed(12) 
+# Change seed number to change bootstrapped sample
+
+bos_15_boot = bos_15 %&gt;%
+  sample_n(15, replace = TRUE)
+
+ggplot(bos_15, aes(x = dep_delay, y = arr_delay)) + 
+  geom_point(color = "gray80") +
+  geom_count(data = bos_15_boot, color = "dodgerblue") +
+  geom_smooth(data = bos_15_boot, method = "lm", 
+              se = FALSE, col = "hotpink", size = 0.75) + 
+  theme_minimal() + 
+  labs(x = "Departure Delay (in mins)", 
+       y = "Arrival Delay (in mins)", 
+       title = "Bootstrapped Sample: 15 flights from NYC to BOS") + 
+  theme(legend.position = "none")
+```
+
+---
+
+# Bootstrapping vs. Many Samples
+
+.pull-left[
+![](11-Ensemble_Methods_files/figure-html/unnamed-chunk-28-1.png)&lt;!-- --&gt;
+]
+
+.pull-right[
+![](11-Ensemble_Methods_files/figure-html/unnamed-chunk-29-1.png)&lt;!-- --&gt;
+]
+
+--
+
+While we cannot *realistically* take **many random samples**, the *bootstrap samples* provide a good **approximation** to the **variability between samples**. 
+
+---
+
+# Larger Sample Size
+
+`\(n=100\)` instead of `\(n=15\)`
+
+.pull-left[
+![](11-Ensemble_Methods_files/figure-html/unnamed-chunk-30-1.png)&lt;!-- --&gt;
+]
+
+.pull-right[
+![](11-Ensemble_Methods_files/figure-html/unnamed-chunk-31-1.png)&lt;!-- --&gt;
+]
+
+---
+
+# Larger Sample Size (with flexible models)
+
+`\(n=100\)` instead of `\(n=15\)`
+
+.pull-left[
+![](11-Ensemble_Methods_files/figure-html/unnamed-chunk-32-1.png)&lt;!-- --&gt;
+]
+
+.pull-right[
+![](11-Ensemble_Methods_files/figure-html/unnamed-chunk-33-1.png)&lt;!-- --&gt;
+]
+
+---
+
+# Bootstrap Distribution
+
+If we calculate the sample mean `arr_delay` *within each bootstrap sample*...
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-34-1.png" width="40%" /&gt;
+
+...we can get a pretty good *visual representation* of how much the *mean arrival delay* will **vary** from sample-to-sample. 
+
+- Remember, with the **bootstrap** we have *only one sample*. We just take many *bootstrap samples* from the sample **with replacement**. 
+
+---
+
+class: center, middle
+
+# Ensemble Methods
+
+---
+
+# Recap: tidymodels
+
+.center[
+&lt;img src="data_splitting.png" width="696" /&gt;
+]
+
+---
+
+# Recap: parsnip
+
+.pull-left[
+To specify a model (with **training data**):
+
+1. Pick a [model](https://www.tidymodels.org/find/parsnip/). 
+
+2. Set the [engine](https://www.tidymodels.org/find/parsnip/).
+
+3. Set the [mode](https://www.tidymodels.org/find/parsnip/) (if necessary; it's either `"classification"` or `"regression"`). 
+]
+
+.pull-right[
+&lt;img src="parsnip_hex.png" width="276" /&gt;
+]
+
+---
+
+# Examples
+
+**Numerical Target**
+
+*Linear Regression*
+
+
+```r
+fit_lm = linear_reg() %&gt;%
+  set_engine(engine = "lm") %&gt;%
+  fit(y ~ x, data = data_train)
+```
+
+*Regression Tree*
+
+
+```r
+fit_rt = decision_tree() %&gt;%
+  set_engine(engine = "rpart") %&gt;%
+  set_mode(mode = "regression") %&gt;%
+  fit(y ~ x, data = data_train)
+```
+
+---
+
+# Examples
+
+**Categorical Target**
+
+*Logistic Regression*
+
+
+```r
+fit_log = logistic_reg() %&gt;%
+  set_engine(engine = "glm") %&gt;%
+  fit(y ~ x, data = data_train)
+```
+
+*Classification Tree*
+
+
+```r
+fit_ct = decision_tree() %&gt;%
+  set_engine(engine = "rpart") %&gt;%
+  set_mode(mode = "classification") %&gt;%
+  fit(y ~ x, data = data_train)
+```
+
+---
+
+# Practice 
+
+
+
+
+Let's combine **bootstrapping** with **decision trees**!
+
+1. Get into **groups of 3 or 4** (I'll randomize with Zoom's *breakout rooms*). 
+
+2. Using the `stackoverflow` data, each group member train a **decision tree** predicting `remote` (whether the employee works *remotely* or *not remotely*), **using a different bootstrapped sample**. 
+    - I'll give a code template on the next slide. 
+    
+3. Predict your observations from the **testing set**. 
+
+4. Tally up your group's *predictions* for the 10 **testing set** observations. The outcome (`Remote` or `Not remote`) for each observation with the most *predictions* wins. This will be the "group prediction."
+    - Example: For *observation 1* (who actually works `Remote`) in the testing set, my model predicted they are `Not remote`. 
+    - However my two friends trained models that predicted this individual is `Remote`. Therefore `"Remote"` is the "group prediction."
+
+---
+
+# Code Template (PART 1)
+
+
+```r
+stackoverflow = stackoverflow %&gt;%
+  mutate(remote = factor(remote)) # Convert to factor
+
+set.seed(1) # Keep this!
+stack_split = initial_split(stackoverflow, prop = 0.991)
+
+set.seed(🤔) # EACH GROUP MEMBER CHOOSE A DIFFERENT NUMBER!
+stack_train = training(stack_split) %&gt;%
+  sample_n(size = n(), replace = TRUE)
+stack_test = testing(stack_split)
+```
+
+---
+
+# Code Template (PART 2)
+
+
+```r
+stack_fit = decision_tree() %&gt;%
+  set_engine(engine = "rpart") %&gt;%
+  set_mode(mode = 🤔) %&gt;%
+  fit(remote ~ salary + company_size_number_cat + years_coded_job, 
+      data = 🤔)
+
+stack_pred = stack_fit %&gt;%
+  predict(new_data = 🤔)
+
+stack_test %&gt;%
+  select(remote) %&gt;%
+  rename(remote_truth = remote) %&gt;%
+  mutate(remote_pred = stack_pred$.pred_class)
+```
+
+
+
+---
+
+# Here's how my "group" did
+
+
+```
+## # A tibble: 10 x 4
+##    remote_truth remote_pred_ant1 remote_pred_ant2 remote_pred_ant3
+##    &lt;fct&gt;        &lt;fct&gt;            &lt;chr&gt;            &lt;chr&gt;           
+##  1 Remote       Remote           Remote           Remote          
+##  2 Remote       Remote           Remote           Remote          
+##  3 Remote       Remote           Remote           Remote          
+##  4 Remote       Remote           Not remote       Remote          
+##  5 Remote       Not remote       Not remote       Not remote      
+##  6 Remote       Remote           Remote           Remote          
+##  7 Not remote   Not remote       Not remote       Not remote      
+##  8 Not remote   Not remote       Remote           Remote          
+##  9 Not remote   Not remote       Not remote       Not remote      
+## 10 Not remote   Not remote       Not remote       Not remote
+```
+
+---
+
+# Here's how my "group" did
+
+**Majority vote** wins the prediction for each observation!
+
+
+```
+## # A tibble: 10 x 2
+##    remote_truth remote_pred_winner
+##    &lt;fct&gt;        &lt;chr&gt;             
+##  1 Remote       Remote            
+##  2 Remote       Remote            
+##  3 Remote       Remote            
+##  4 Remote       Remote            
+##  5 Remote       Not remote        
+##  6 Remote       Remote            
+##  7 Not remote   Not remote        
+##  8 Not remote   Remote            
+##  9 Not remote   Note remote       
+## 10 Not remote   Not remote
+```
+
+**Accuracy**: 80%
+
+---
+
+# What did we just do?
+
+**B**ootstrap **Agg**regat**ing**
+
+- (*Bagging*)
+
+--
+
+**Bagging** is an example of an **ensemble method**
+
+- We used *multiple classifiers* (e.g., decision trees with different *bootstrapped* training sets) to create an **ensemble** of predictions. 
+
+.center[
+&lt;img src="ensemble.jpeg" width="309" /&gt;
+]
+
+---
+
+# How does bagging work?
+
+**Bagging** works by fitting *multiple versions* of a prediction model, and then combining them into an *aggregated prediction*. 
+
+- *b* **bootstrapped copies** of the training set are created, and the regression/classification model is fit to each copy. 
+
+- Predictions are made by *averaging* the predictions together from each separate model. 
+    - Though in classification models, predictions are made by "majority rule."
+    
+--
+
+**Example**: Meet our "data"
+
+.pull-left[
+&lt;img src="ac_rod.jpeg" width="79" /&gt;
+**Rod**
+
+&lt;img src="ac_dora.jpeg" width="79" /&gt;
+**Dora**
+]
+    
+---
+
+# Bagging
+
+**Sample**: *n = 8*, split evenly between *testing* and *training*
+
+.center[
+&lt;img src="ensemble1.png" width="564" /&gt;
+]
+
+(Shoutout to [Alison Hill's workshop](https://conf20-intro-ml.netlify.com/) for inspiring this illustration!)
+
+---
+
+# Bagging
+
+.center[
+&lt;img src="ensemble2.png" width="544" /&gt;
+]
+
+---
+
+# Bagging
+
+.center[
+&lt;img src="ensemble3.png" width="547" /&gt;
+]
+
+
+---
+
+# Bagging
+
+.center[
+&lt;img src="ensemble4.png" width="550" /&gt;
+]
+
+
+---
+
+# Bagging
+
+.center[
+&lt;img src="ensemble5.png" width="587" /&gt;
+]
+
+- **Note**: I *strongly recommend* never actually training a model with *n = 4* observations, or using a testing set with *n = 4* observations!
+
+---
+
+class: center, middle
+
+# Random Forests
+
+---
+
+# Random Forests
+
+A **random forest** is a modification of a **bagged decision tree** that builds a large collection of trees to improve predictive performance. 
+
+A limitation of **bagging** is that we are using the *same set of features* with each bootstrapped training set. 
+
+- This results in a **correlated tree structure** which might limit the model's performance. 
+- In other words, trees from different bootstrap samples could have similar structure to one another, especially at the *top* of the trees. 
+
+--
+
+**Random forest** models add an extra layer of *randomness* to the model by limiting the *split features* to a random subset (of length `\(m_{try}\)`) from the original *p* features. 
+
+- You may think of a **random forest** as *extended bagging*. 
+
+---
+
+# Random Forests
+
+From [Boehmke and Greenwell, 2020](https://bradleyboehmke.github.io/HOML/):
+
+1. Given a *training data set*
+2. Select *number* of trees to build (`n_trees`)
+3. for `i = 1 ` to `n_trees` do:
+    - Generate a *bootstrap sample* of the original training data
+    - Grow a regression/classification tree to the *bootstrapped data*
+    - for each split do:
+        - Select `m_try` variables at random from all `p` variables
+        - Pick the best variable/split-point among the `m_try`
+        - Split the node into two child nodes
+    - end
+4. end
+5. Output ensemble of trees 
+
+- When `mtry` = `p`, this is equivalent to a **bagged decision tree**. 
+
+--
+
+In R (specifically using `parsnip` through `tidymodels`), we can build a **random forest** with `rand_forest()`!
+
+---
+
+# Random Forests (in R)
+
+
+```r
+fit_rf = rand_forest(
+  mtry = 4,    # 4 randomly chosen predictors seen at each tree split
+  trees = 500, # 500 trees per forest
+) %&gt;%
+  set_engine(engine = "randomForest") %&gt;%
+  set_mode(mode = "classification") %&gt;%
+  fit(y ~ x1 + x2 + ..., data = data_train)
+```
+
+**Note**: `mtry` and `trees` have *default values* in `rand_forest()`, so it's OK to leave them out. 
+
+- And `mode = "regression"` works if the target is **numerical**!
+
+---
+
+# Comparing Models
+
+Let's use the `ames` housing dataset to compare different models' **predictive performance**. 
+- List of `parsnip` models [HERE](https://tidymodels.github.io/parsnip/articles/articles/Models.html)
+
+First, split the data into **training** and **testing** sets. 
+
+
+```r
+ames = AmesHousing::make_ames()
+ 
+set.seed(12) 
+ames_split = initial_split(ames, prop = 0.7)
+
+ames_train = training(ames_split)
+ames_test = testing(ames_split)
+```
+
+---
+
+# Model 1: Linear Regression
+
+**Fitting the model**
+
+
+```r
+fit_lm = linear_reg() %&gt;%
+  set_engine(engine = "lm") %&gt;%
+  fit(Sale_Price ~ Lot_Area + Street + House_Style + 
+        Year_Built + Exter_Qual + Total_Bsmt_SF + 
+        Gr_Liv_Area + TotRms_AbvGrd + 
+        Fireplaces + Garage_Area, 
+    data = ames_train)
+```
+
+---
+
+# Model 1: Linear Regression
+
+**Generating predictions/prediction metrics** (on *testing set*)
+
+
+```r
+pred_lm = fit_lm %&gt;%
+  predict(new_data = ames_test)
+
+ames_test %&gt;%
+  mutate(Sale_Price_Pred = pred_lm$.pred) %&gt;%
+  rmse(truth = Sale_Price, estimate = Sale_Price_Pred)  
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 rmse    standard      34043.
+```
+
+---
+
+# Model 2: Vanilla Decision Tree
+
+**Fitting the model**
+
+
+```r
+fit_tree = decision_tree() %&gt;%
+  set_engine(engine = "rpart") %&gt;%
+  set_mode(mode = "regression") %&gt;%
+  fit(Sale_Price ~ Lot_Area + Street + House_Style + 
+        Year_Built + Exter_Qual + Total_Bsmt_SF + 
+        Gr_Liv_Area + TotRms_AbvGrd + 
+        Fireplaces + Garage_Area, 
+    data = ames_train)
+```
+
+---
+
+# Model 2: Vanilla Decision Tree
+
+**Generating predictions/prediction metrics** (on *testing set*)
+
+
+```r
+pred_tree = fit_tree %&gt;%
+  predict(new_data = ames_test)
+
+ames_test %&gt;%
+  mutate(Sale_Price_Pred = pred_tree$.pred) %&gt;%
+  rmse(truth = Sale_Price, estimate = Sale_Price_Pred)  
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 rmse    standard      40320.
+```
+
+---
+
+# Model 3: Bagging
+
+**Fitting the model**
+
+
+```r
+# Setting mtry equal to number of predictors
+fit_bag = rand_forest(mtry = .preds()) %&gt;%
+  set_engine(engine = "randomForest") %&gt;%
+  set_mode(mode = "regression") %&gt;%
+  fit(Sale_Price ~ Lot_Area + Street + House_Style + 
+        Year_Built + Exter_Qual + Total_Bsmt_SF + 
+        Gr_Liv_Area + TotRms_AbvGrd + 
+        Fireplaces + Garage_Area, 
+    data = ames_train)
+```
+
+---
+
+# Model 3: Bagging
+
+**Generating predictions/prediction metrics** (on *testing set*)
+
+
+```r
+pred_bag = fit_bag %&gt;%
+  predict(new_data = ames_test)
+
+ames_test %&gt;%
+  mutate(Sale_Price_Pred = pred_bag$.pred) %&gt;%
+  rmse(truth = Sale_Price, estimate = Sale_Price_Pred)  
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 rmse    standard      29991.
+```
+
+---
+
+# Model 4: Random Forest
+
+**Fitting the model**
+
+
+```r
+fit_rf = rand_forest() %&gt;%
+  set_engine(engine = "randomForest") %&gt;%
+  set_mode(mode = "regression") %&gt;%
+  fit(Sale_Price ~ Lot_Area + Street + House_Style + 
+        Year_Built + Exter_Qual + Total_Bsmt_SF + 
+        Gr_Liv_Area + TotRms_AbvGrd + 
+        Fireplaces + Garage_Area, 
+    data = ames_train)
+```
+
+---
+
+# Model 4: Random Forest
+
+**Generating predictions/prediction metrics** (on *testing set*)
+
+
+```r
+pred_rf = fit_rf %&gt;%
+  predict(new_data = ames_test)
+
+ames_test %&gt;%
+  mutate(Sale_Price_Pred = pred_rf$.pred) %&gt;%
+  rmse(truth = Sale_Price, estimate = Sale_Price_Pred)  
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 rmse    standard      28425.
+```
+
+---
+
+# Random Forests, with food data!
+
+Let's use a **random forest** to predict the `restaurant` based on nutrition information of menu items. 
+
+
+```r
+food = read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-09-04/fastfood_calories.csv")
+#View(food)
+
+food = food %&gt;%
+  select(-X1, -item, -vit_a, -vit_c, -calcium, -salad) %&gt;%
+  mutate(restaurant = factor(restaurant)) %&gt;%
+  na.omit()
+```
+
+---
+
+# Building Model
+
+**Data splitting**
+
+
+```r
+set.seed(12)
+food_split = initial_split(food)
+food_train = training(food_split)
+food_test = testing(food_split)
+```
+
+--
+
+**Building Random Forest**
+
+**Note**: Use `fit(y ~ ., data = ...)` to include all columns as features. 
+
+
+```r
+fit_food = rand_forest() %&gt;%
+  set_engine(engine = "randomForest") %&gt;%
+  set_mode(mode = "classification") %&gt;%
+  fit(restaurant ~ ., data = food_train)
+```
+
+---
+
+# Evaluating Model Performance
+
+
+```r
+pred_food = fit_food %&gt;%
+  predict(new_data = food_test)
+
+food_test %&gt;%
+  mutate(restaurant_pred = pred_food$.pred_class) %&gt;%
+  accuracy(truth = restaurant, estimate = restaurant_pred)  
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric  .estimator .estimate
+##   &lt;chr&gt;    &lt;chr&gt;          &lt;dbl&gt;
+## 1 accuracy multiclass      0.68
+```
+
+---
+
+# Variable Importance
+
+Use `vip()` in the `vip` package to plot **variable importance scores** for a model. 
+- `vip()` also returns a `ggplot2` object, so you can add other layers like `theme_bw()`. 
+
+```r
+library(vip)
+vip(fit_food, geom = "point") + 
+  theme_bw()
+```
+
+&lt;img src="11-Ensemble_Methods_files/figure-html/unnamed-chunk-69-1.png" width="35%" /&gt;
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"countIncrementalSlides": false,
+"highlightLines": true
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
