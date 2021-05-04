@@ -493,16 +493,13 @@ fit_ct = decision_tree() %&gt;%
 
 Let's combine **bootstrapping** with **decision trees**!
 
-1. Get into **groups of 3 or 4** (I'll randomize with Zoom's *breakout rooms*). 
-
-2. Using the `stackoverflow` data, each group member train a **decision tree** predicting `remote` (whether the employee works *remotely* or *not remotely*), **using a different bootstrapped sample**. 
+1. Using the `stackoverflow` data,train a **decision tree** predicting `remote` (whether the employee works *remotely* or *not remotely*), **using a bootstrapped training set**. 
     - I'll give a code template on the next slide. 
     
-3. Predict your observations from the **testing set**. 
+2. Predict your observations from the (non-bootstrapped) **testing set**. 
 
-4. Tally up your group's *predictions* for the 10 **testing set** observations. The outcome (`Remote` or `Not remote`) for each observation with the most *predictions* wins. This will be the "group prediction."
-    - Example: For *observation 1* (who actually works `Remote`) in the testing set, my model predicted they are `Not remote`. 
-    - However my two friends trained models that predicted this individual is `Remote`. Therefore `"Remote"` is the "group prediction."
+3. Report a table that gives the **observed** target values in the testing set (i.e., `remote`) and the **predicted** target values (`remote_pred`). This can be accomplished with a `mutate() %&gt;% select()`. Record which predictions were *correct*.
+    - Example: For *observation 1* (who actually works `Remote`) in the testing set, my model predicted they are `Not remote`. That is *incorrect*. 
 
 ---
 
